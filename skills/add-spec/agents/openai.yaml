@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Spec"
+  short_description: "Create an approved SDD feature specification"
+  default_prompt: "Use $add-spec to turn this feature request into an approved spec before implementation."

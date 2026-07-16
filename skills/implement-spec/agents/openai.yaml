@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Spec"
+  short_description: "Implement and verify one approved SDD slice"
+  default_prompt: "Use $implement-spec to implement and verify the active approved slice."
