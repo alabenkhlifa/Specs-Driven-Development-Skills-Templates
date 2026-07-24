@@ -74,6 +74,8 @@ The Markdown contracts under `commands/` can be adapted to another coding agent.
 - Implementation works only from an approved active slice.
 - Every unresolved decision names the earliest stage it blocks.
 - Product requirements, technical design, implementation, verification, and release readiness are reported separately.
+- Related independent questions are asked in small batches, and every question includes a recommended answer with a brief reason.
+- Each answered batch is written back and validated once before another batch starts.
 - Missing active-slice decisions and boundary changes stop implementation; deployment-only gates stop deployment and release claims.
 - Progress, failures, and new decisions are written back to project files.
 

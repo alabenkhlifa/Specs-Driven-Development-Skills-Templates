@@ -29,6 +29,16 @@ Spec-only work must not continue into code, migrations, tests, dependencies, or 
 - Ask about a technical alternative only when it changes observable behavior or requires explicit security, privacy, cost, or operational risk acceptance.
 - Use representative acceptance criteria. Do not duplicate a complete technical test matrix across requirements, design, and tasks.
 
+## Specification Question Batches
+
+- Before asking, search the current requirements, design, tasks, and recorded project decisions. Do not ask for a decision that is already recorded.
+- Group related, independent user-owned questions that share one workflow context and readiness stage into a small batch, usually two to five questions.
+- Ask one question by itself only when its answer changes the next questions, it is a foundational product fork, or a previous answer needs clarification.
+- Always provide one recommended answer and a brief reason for every question. When no product option can be responsibly preferred, recommend the next action, such as deferring the decision, gathering evidence, or asking the accountable owner.
+- Format each batch so the user can answer every question individually or accept all recommendations together.
+- Do not mix product-discovery and technical-design questions in one batch.
+- After the user answers, apply the complete batch through one `update-spec` write-back and one validation pass before asking another batch or ending the session.
+
 ## Product-First Sequence
 
 - Complete product requirements before asking technical-design or implementation questions.
@@ -72,7 +82,7 @@ Do not stop implementation only because a recorded deployment or release gate re
 ## Write-Back Rules
 
 - During discussion of an existing specification, write every accepted decision through `update-spec`.
-- After the user answers a specification question, update every affected spec file before asking the next question or ending the session.
+- After the user answers a specification question or related question batch, update every affected spec file before asking the next batch or ending the session.
 - Do not leave resolved questions, blockers, status changes, or progress only in the conversation.
 - A new conversation should recover state from the repository and need only the user's next intent.
 - Update `requirements.md` when expected behavior, scope, or a business rule changes.

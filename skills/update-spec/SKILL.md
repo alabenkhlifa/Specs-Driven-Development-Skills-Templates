@@ -15,17 +15,27 @@ Activate this skill as the workflow for restoring agreement between requirements
 4. Apply a decision-ownership and specificity gate before asking a question:
    - Ask the user when alternatives change observable behavior, workflow, scope, a business rule, ownership, data handling, risk acceptance, or an acceptance outcome.
    - When alternatives preserve the accepted product outcome, treat the mechanism as an engineering decision and consolidate it in design open questions or task blockers instead of asking the user to choose it.
-5. Ask one consequential user-owned question at a time when the requested change remains ambiguous. Do not fill a material gap with an implementation assumption.
-6. For consequential or complex changes, use Plan mode to approve an update proposal. Return to Default mode before writing files.
-7. Trace the decision through every affected surface:
+5. Resolve user-owned decisions through the Question Batching Rules below. Do not fill a material gap with an implementation assumption.
+6. After the user answers a batch, apply all accepted answers as one specification update before asking another batch or ending the session.
+7. For consequential or complex changes, use Plan mode to approve an update proposal. Return to Default mode before writing files.
+8. Trace the decision through every affected surface:
    - `requirements.md`: workflow, scope, rules, acceptance criteria, and open questions.
    - `design.md`: logical approach, domain and access boundaries, interfaces, decisions, tradeoffs, risks, and technical questions.
    - `tasks.md`: active-slice boundary, implementation steps, proof, verification gate, active blockers, release gates, deferred work, and progress state when it materially changes.
-8. Remove or replace resolved questions, stale blockers, contradicted wording, and invalid proof. Consolidate obsolete or repetitive discovery checkpoints after confirming their durable decisions live in the current requirements, design, and task state. Preserve a replaced tradeoff by recording the new choice and consequence.
-9. Keep technologies deferred when the decision is still product-level. Add technical consequences as open questions instead of selecting a stack implicitly.
-10. Set status by the affected stage. Move requirements to `Draft` when the product agreement becomes incomplete, move tasks to `Blocked` only when active implementation or required verification cannot proceed, and remove `Verified` whenever existing proof no longer covers the changed behavior. Keep deployment-only unknowns in an explicit release gate without representing the work as releasable.
-11. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that every changed decision agrees across files.
-12. Report the changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
+9. Remove or replace resolved questions, stale blockers, contradicted wording, and invalid proof. Consolidate obsolete or repetitive discovery checkpoints after confirming their durable decisions live in the current requirements, design, and task state. Preserve a replaced tradeoff by recording the new choice and consequence.
+10. Keep technologies deferred when the decision is still product-level. Add technical consequences as open questions instead of selecting a stack implicitly.
+11. Set status by the affected stage. Move requirements to `Draft` when the product agreement becomes incomplete, move tasks to `Blocked` only when active implementation or required verification cannot proceed, and remove `Verified` whenever existing proof no longer covers the changed behavior. Keep deployment-only unknowns in an explicit release gate without representing the work as releasable.
+12. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` once after applying the batch when the project validator exists, then manually confirm that every changed decision agrees across files.
+13. Report the changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
+
+## Question Batching Rules
+
+- Group related, independent questions that share one workflow context and readiness stage into a small batch, usually two to five questions.
+- Ask one question by itself only when its answer changes the next questions, it is a foundational product fork, or a previous answer needs clarification.
+- Always give one recommended answer and a brief reason for every question. When no product option can be responsibly preferred, recommend the next action, such as deferring the decision, gathering evidence, or asking the accountable owner.
+- Format each batch so the user can answer every question individually or accept all recommendations together.
+- Apply and validate the answered batch once before presenting another batch. Do not perform a separate read, write, validation, or progress-log update for each answer in the same batch.
+- Do not mix product discovery and technical-design questions in the same batch.
 
 ## Decision Rules
 
