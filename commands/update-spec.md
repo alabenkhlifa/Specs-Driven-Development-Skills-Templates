@@ -37,11 +37,12 @@ Do not edit the specification or implementation while still in a read-only plann
    - `requirements.md`: workflow, scope, rules, acceptance criteria, and product questions.
    - `design.md`: approach, boundaries, interfaces, tradeoffs, risks, and technical questions.
    - `tasks.md`: active boundary, implementation steps, proof, verification, active blockers, release gates, deferred work, and meaningful progress state.
-10. Remove resolved questions, stale blockers, contradicted wording, and invalid proof.
-11. Preserve the abstraction level of the accepted answer. Do not expand a simple product decision into exhaustive implementation details.
-12. Keep `tasks.md` focused on the current executable slice. Do not append a progress entry for every discovery answer when current-state sections already preserve the decision.
-13. Set status by stage. Use `Draft` when the product agreement is incomplete, `Blocked` only when active implementation or verification cannot proceed, and remove `Verified` when existing proof is invalid.
-14. Run available specification checks once after applying the batch and report the scope classification, changed decisions, blocked stages, invalidated work, and product, design, implementation, verification, and release readiness.
+10. Run the Delivery Coverage Gate whenever requirements, design, or the active task plan changes.
+11. Remove resolved questions, stale blockers, contradicted wording, and invalid proof.
+12. Preserve the abstraction level of the accepted answer. Do not expand a simple product decision into exhaustive implementation details.
+13. Keep `tasks.md` focused on the current executable slice. Do not append a progress entry for every discovery answer when current-state sections already preserve the decision.
+14. Set status by stage. Use `Draft` when the product agreement is incomplete, `Blocked` only when active implementation or verification cannot proceed, and remove `Verified` when existing proof is invalid.
+15. Run available specification checks once after applying the batch and report the scope classification, delivery-coverage result, changed decisions, blocked stages, invalidated work, and product, design, implementation, verification, and release readiness.
 
 ## Question Batching Rules
 
@@ -61,6 +62,14 @@ Do not edit the specification or implementation while still in a read-only plann
 - Treat unusual growth in acceptance criteria, design decisions, components, or tasks as a review signal. Counts trigger inspection; they are not hard limits.
 - If the specification has become an umbrella, retain its shared rules, dependencies, completed history, and release coordination. Extract unfinished independently executable work into child specifications without duplicating tasks or rewriting verified history.
 - Classify the result as `focused specification`, `umbrella with child specifications`, or `split required`. A `split required` result blocks new implementation until the unfinished work has a focused active slice.
+
+## Delivery Coverage Gate
+
+- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface required by the active slice.
+- Assign every surface to one primary task through its `Owned surfaces` field. Naming a surface only in purpose, proof, acceptance criteria, or verification does not assign implementation ownership.
+- Prefer vertical tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
+- Keep final end-to-end tasks focused on integration and verification of surfaces already owned elsewhere.
+- Resolve every unmapped or ambiguously owned surface before completion, or mark the active slice `Blocked` when the gap prevents implementation.
 
 ## Status Rules
 
@@ -83,4 +92,4 @@ Do not edit the specification or implementation while still in a read-only plann
 
 ## Completion
 
-The workflow is complete when the scope is classified and healthy, the changed decision and proof are visible, affected files agree, stale questions are removed, `tasks.md` remains concise, available checks pass, and every readiness state is accurate.
+The workflow is complete when the scope is classified and healthy, the changed decision and proof are visible, affected files agree, every required delivery surface has one clear owning task, stale questions are removed, `tasks.md` remains concise, available checks pass, and every readiness state is accurate.

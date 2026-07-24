@@ -26,11 +26,12 @@ Activate this skill as the workflow for creating one feature specification witho
 9. Stop discovery once there is enough agreement to write a useful `Draft`. Record remaining decisions under `Open Questions` instead of extending the conversation indefinitely.
 10. Define the bounded feature in `requirements.md` and `design.md`, then limit `tasks.md` to the first end-to-end executable slice. Record required later behavior as deferred after the active slice, not as part of its implementation boundary.
 11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
-12. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
-13. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
-14. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` only while a decision prevents active implementation or required verification. Never present incomplete release gates as release-ready.
-15. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that requirements, design, tasks, proof, and scope classification agree.
-16. Report the scope classification, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
+12. Run the Delivery Coverage Gate before completing the task plan.
+13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
+14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
+15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` only while a decision prevents active implementation or required verification. Never present incomplete release gates as release-ready.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that requirements, design, tasks, proof, scope classification, and delivery coverage agree.
+17. Report the scope classification, delivery-coverage result including any unmapped or ambiguous surfaces, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -56,6 +57,14 @@ Activate this skill as the workflow for creating one feature specification witho
 - When shared behavior needs an umbrella specification, keep only cross-slice rules, dependencies, and release coordination there. Create child specifications for independently executable outcomes, and do not duplicate their implementation tasks in the umbrella.
 - Before writing or approving, classify the result as `focused specification`, `umbrella with child specifications`, or `split required`, and record the rationale in the report. Resolve `split required` before implementation begins.
 
+## Delivery Coverage Gate
+
+- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface named by the active-slice requirements and design.
+- Assign every surface to one primary implementation task through its `Owned surfaces` field. A surface is not covered when it appears only in purpose, proof, acceptance criteria, or the verification gate.
+- Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when they can be implemented and proved through one coherent scenario.
+- A final end-to-end task integrates and verifies surfaces already owned elsewhere; it must not silently own all otherwise unassigned pages or behavior.
+- Resolve every unmapped or ambiguously owned surface before completion, or record it as an active implementation blocker.
+
 ## Discovery Rules
 
 - Do not assume the primary user is a developer because the product concerns software or AI agents.
@@ -79,4 +88,4 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Completion
 
-Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, pass available mechanical checks, and make the next required decision visible.
+Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required delivery surface has one clear owning task, available mechanical checks pass, and the next required decision is visible.

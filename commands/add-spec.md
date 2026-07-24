@@ -40,8 +40,9 @@ Do not claim that specification files were created while the agent is still in a
 10. Create `specs/<feature>/requirements.md`, `design.md`, and `tasks.md` from the bundled templates.
 11. Define the full bounded feature in requirements and design. Keep `tasks.md` limited to the first end-to-end executable slice and record later work as deferred.
 12. Keep deployment-dependent evidence that is not needed for implementation or local verification in the release boundary.
-13. Set status by stage: requirements remain `Draft` while the product agreement is incomplete, and tasks are `Blocked` only when active implementation or required verification cannot proceed.
-14. Run available specification checks and report the scope classification, assumptions, unresolved questions with their blocked stages, the active boundary, and readiness for product, design, implementation, verification, and release.
+13. Run the Delivery Coverage Gate before completing the task plan.
+14. Set status by stage: requirements remain `Draft` while the product agreement is incomplete, and tasks are `Blocked` only when active implementation or required verification cannot proceed.
+15. Run available specification checks and report the scope classification, delivery-coverage result, assumptions, unresolved questions with their blocked stages, the active boundary, and readiness for product, design, implementation, verification, and release.
 
 ## Question Batching Rules
 
@@ -62,6 +63,14 @@ Do not claim that specification files were created while the agent is still in a
 - When an umbrella is useful, keep shared rules, dependencies, and release coordination there. Move independently executable outcomes into child specifications without duplicating their tasks.
 - Classify the result as `focused specification`, `umbrella with child specifications`, or `split required`. Resolve `split required` before implementation begins.
 
+## Delivery Coverage Gate
+
+- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface required by the active slice.
+- Assign every surface to one primary task through its `Owned surfaces` field. Purpose, proof, acceptance criteria, and verification do not assign implementation ownership.
+- Prefer vertical tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
+- Keep the final end-to-end task focused on integration and verification of surfaces already owned elsewhere.
+- Resolve every unmapped or ambiguously owned surface before completion, or record it as an active implementation blocker.
+
 ## Restrictions
 
 - Do not implement application code.
@@ -74,4 +83,4 @@ Do not claim that specification files were created while the agent is still in a
 
 ## Completion
 
-The workflow is complete when the scope is classified and healthy, all three files agree on the feature and first active slice, available checks pass, and every remaining decision and blocked stage is visible.
+The workflow is complete when the scope is classified and healthy, all three files agree on the feature and first active slice, every required delivery surface has one clear owning task, available checks pass, and every remaining decision and blocked stage is visible.
