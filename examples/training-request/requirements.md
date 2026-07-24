@@ -25,6 +25,12 @@ A colleague can submit a training request, see it after submission, and provide 
 - Budget reservation or payment processing
 - Notifications
 
+## Primary Workflow
+
+1. A colleague opens the training request form.
+2. They enter the title, provider, cost, currency, and business justification.
+3. They submit the request and see it in their request list while Office Management sees it in the review queue.
+
 ## Business Rules
 
 - A colleague can read only requests they own.
@@ -42,4 +48,3 @@ A colleague can submit a training request, see it after submission, and provide 
 ## Open Questions
 
 None.
-

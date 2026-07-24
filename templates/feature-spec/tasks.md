@@ -19,6 +19,14 @@ Excluded:
 
 - <Related work that must remain separate>
 
+Deferred after this slice:
+
+- <Required behavior planned for a later executable slice>
+
+Release gates:
+
+- <Deployment or release evidence that is not required for active implementation, or None>
+
 ## Tasks
 
 - [ ] <First implementation step>
@@ -40,7 +48,7 @@ Excluded:
 
 ## Blocked Decisions
 
-- <Decision that must be resolved before work continues>
+- <Decision that blocks the active slice and the earliest stage it blocks, or None>
 
 ## Progress Log
 
@@ -50,4 +58,3 @@ Excluded:
 - Remaining: <What is still open>
 - Failed checks: <Failure that still blocks completion>
 - Spec updates: <Requirements or design decisions written back>
-

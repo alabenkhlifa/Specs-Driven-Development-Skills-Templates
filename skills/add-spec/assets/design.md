@@ -38,5 +38,4 @@
 
 ## Open Questions
 
-- <Technical decision that must be resolved before implementation>
-
+- <Unresolved technical decision and the earliest readiness stage it blocks, or None>

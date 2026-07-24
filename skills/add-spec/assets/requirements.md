@@ -23,6 +23,12 @@ Draft | Approved | Implementing | Verified
 - <Related behavior intentionally postponed>
 - <Shortcut or limitation accepted for this slice>
 
+## Primary Workflow
+
+1. <Entry condition or first user action>
+2. <Next observable step>
+3. <Completion or handoff state>
+
 ## Business Rules
 
 - <Rule the implementation must enforce>
@@ -35,5 +41,4 @@ Draft | Approved | Implementing | Verified
 
 ## Open Questions
 
-- <Decision that must be resolved before implementation>
-
+- <Unresolved product decision and the earliest readiness stage it blocks, or None>

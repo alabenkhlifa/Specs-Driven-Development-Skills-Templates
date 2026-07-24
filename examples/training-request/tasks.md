@@ -23,6 +23,14 @@ Excluded:
 - Approval actions and status history
 - Notifications, budgets, and payments
 
+Deferred after this slice:
+
+- Approval decisions and status history will be specified as a later executable slice.
+
+Release gates:
+
+- None.
+
 ## Tasks
 
 - [ ] Add the request model and persistence migration.
@@ -57,4 +65,3 @@ None.
 ## Progress Log
 
 No implementation sessions yet.
-

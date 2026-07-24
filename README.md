@@ -14,7 +14,7 @@ Use the repository as a template to start with the complete structure, or copy o
 
 The repository contains reusable templates and workflows for three operations:
 
-- `add-spec`: turn a feature request into an approved specification without implementing it.
+- `add-spec`: turn a feature request into an initial specification and first executable slice without implementing it.
 - `update-spec`: update a specification when product or technical decisions change.
 - `implement-spec`: implement and verify one approved slice without silently changing the agreement.
 
@@ -38,7 +38,7 @@ The repository contains reusable templates and workflows for three operations:
 4. Replace every placeholder and configure the real project checks.
 5. Keep the first `tasks.md` limited to one executable slice.
 
-Do not mark a spec `Approved` while blocking decisions remain. Do not mark a slice `Verified` while a required check is failing.
+Requirements can be `Approved` while design, implementation, verification, or release work remains. Mark tasks `Blocked` only when a decision prevents active implementation or required verification. Keep deployment-only evidence in a release gate, and do not mark a slice `Verified` while a required check is failing.
 
 ## Use with Codex
 
@@ -72,7 +72,9 @@ The Markdown contracts under `commands/` can be adapted to another coding agent.
 
 - Spec commands may inspect code but do not implement application changes.
 - Implementation works only from an approved active slice.
-- Missing decisions and boundary changes stop implementation.
+- Every unresolved decision names the earliest stage it blocks.
+- Product requirements, technical design, implementation, verification, and release readiness are reported separately.
+- Missing active-slice decisions and boundary changes stop implementation; deployment-only gates stop deployment and release claims.
 - Progress, failures, and new decisions are written back to project files.
 
 ## Validate Changes

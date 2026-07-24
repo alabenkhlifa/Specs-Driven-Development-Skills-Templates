@@ -1,4 +1,4 @@
 interface:
   display_name: "Update Spec"
-  short_description: "Update SDD decisions without implementing them"
-  default_prompt: "Use $update-spec to update this feature specification and keep its decisions aligned."
+  short_description: "Align an existing SDD specification"
+  default_prompt: "Use $update-spec to record this decision across requirements, design, tasks, and proof without implementing it."
