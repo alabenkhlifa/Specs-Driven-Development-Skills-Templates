@@ -1,51 +1,38 @@
+---
+name: update-spec
+description: Update an existing Spec-Driven Development specification when a user clarifies or resolves an open question, or when requirements, scope, business rules, architecture decisions, implementation boundaries, acceptance criteria, or verification expectations change. Use during discovery, review, implementation feedback, or failed verification when the agreement must change before coding continues. Do not implement the change.
+---
+
 # Update Spec
 
-## Purpose
-
-Update an existing specification while preserving decisions that are still valid. Do not implement the change.
-
-## Input
-
-- Specification path or feature name
-- New requirement, discovery, constraint, or decision
-- Relevant current code and verification results
-
-## Optional Plan Stage
-
-Use a read-only planning mode when the update changes approved behavior, crosses components, invalidates an architecture decision, or has unclear consequences.
-
-1. Read the current specification and inspect the affected system.
-2. Identify which requirements, design decisions, active tasks, release gates, and checks would change.
-3. Compare options and their consequences.
-4. Resolve consequential user-owned decisions.
-5. Produce an approved update proposal without editing files.
-6. Return to a writable mode and run this workflow with the approved proposal.
-
-Do not edit the specification or implementation while still in a read-only planning mode.
+Activate this skill as the workflow for restoring agreement between requirements, design, tasks, and proof without implementing the change.
 
 ## Workflow
 
-1. Read the current `requirements.md`, `design.md`, and `tasks.md`.
-2. Inspect the code or failed check that triggered the update.
-3. Classify the decision and the earliest stage it blocks: product requirements, technical design, active-slice implementation, required verification, or deployment and release.
-4. Run the Scope Health Gate whenever the update adds or broadens an outcome, workflow, integration, trust boundary, data lifecycle, implementation boundary, or verification gate.
-5. Ask the user only when alternatives change observable behavior, workflow, scope, a business rule, ownership, data handling, risk acceptance, or an acceptance outcome. Keep equivalent mechanisms as engineering decisions.
-6. Resolve user-owned decisions through the Question Batching Rules below.
+1. Read the applicable `AGENTS.md` and the feature's `requirements.md`, `design.md`, and `tasks.md`.
+2. Inspect the code, discovery, or failed check that triggered the update.
+3. Classify the affected decision, such as user, workflow, scope, business rule, identity, ownership, state, acceptance criterion, architecture, task boundary, or proof. Identify the earliest readiness stage it blocks: product requirements, technical design, active-slice implementation, required verification, or deployment and release. Explain the cross-file impact before editing.
+4. Run the Scope Health Gate whenever the update adds or broadens an outcome, workflow, integration, trust boundary, data lifecycle, implementation boundary, or verification gate. Do not append independent work merely because the existing specification is related.
+5. Apply a decision-ownership and specificity gate before asking a question:
+   - Ask the user when alternatives change observable behavior, workflow, scope, a business rule, ownership, data handling, risk acceptance, or an acceptance outcome.
+   - When alternatives preserve the accepted product outcome, treat the mechanism as an engineering decision and consolidate it in design open questions or task blockers instead of asking the user to choose it.
+6. Resolve user-owned decisions through the Question Batching Rules below. Do not fill a material gap with an implementation assumption.
 7. After the user answers a batch, apply all accepted answers as one specification update before asking another batch or ending the session.
-8. Explain the cross-file impact before editing.
+8. For consequential or complex changes, use Plan mode to approve an update proposal. Return to Default mode before writing files.
 9. Trace the decision through every affected surface:
-   - `requirements.md`: workflow, scope, rules, acceptance criteria, and product questions.
-   - `design.md`: approach, boundaries, interfaces, tradeoffs, risks, and technical questions.
-   - `tasks.md`: active boundary, implementation steps, proof, verification, active blockers, release gates, deferred work, and meaningful progress state.
-10. Run the Delivery Coverage Gate whenever requirements, design, or the active task plan changes.
-11. Remove resolved questions, stale blockers, contradicted wording, and invalid proof.
-12. Preserve the abstraction level of the accepted answer. Do not expand a simple product decision into exhaustive implementation details.
-13. Keep `tasks.md` focused on the current executable slice. Do not append a progress entry for every discovery answer when current-state sections already preserve the decision.
-14. Set status by stage. Use `Draft` when the product agreement is incomplete, `Blocked` only when active implementation or verification cannot proceed, and remove `Verified` when existing proof is invalid.
-15. Run available specification checks once after applying the batch and report the scope classification, delivery-coverage result, changed decisions, blocked stages, invalidated work, and product, design, implementation, verification, and release readiness.
+   - `requirements.md`: workflow, scope, rules, acceptance criteria, and open questions.
+   - `design.md`: logical approach, domain and access boundaries, interfaces, decisions, tradeoffs, risks, and technical questions.
+   - `tasks.md`: active-slice boundary, implementation steps, proof, verification gate, active blockers, release gates, deferred work, and progress state when it materially changes.
+10. Remove or replace resolved questions, stale blockers, contradicted wording, and invalid proof. Consolidate obsolete or repetitive discovery checkpoints after confirming their durable decisions live in the current requirements, design, and task state. Preserve a replaced tradeoff by recording the new choice and consequence.
+11. Keep technologies deferred when the decision is still product-level. Add technical consequences as open questions instead of selecting a stack implicitly.
+12. Run the Delivery Coverage Gate whenever requirements, design, or the active task plan changes.
+13. Set status by the affected stage. Move requirements to `Draft` when the product agreement becomes incomplete, move tasks to `Blocked` only when active implementation or required verification cannot proceed, and remove `Verified` whenever existing proof no longer covers the changed behavior. Keep deployment-only unknowns in an explicit release gate without representing the work as releasable.
+14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` once after applying the batch when the project validator exists, then manually confirm that every changed decision, proof, scope classification, and delivery-coverage mapping agrees across files.
+15. Report the scope classification, delivery-coverage result including any unmapped or ambiguous surfaces, changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
+- Before asking, check the current requirements, design, tasks, and recorded project decisions; do not ask for a decision that is already recorded.
 - Group related, independent questions that share one workflow context and readiness stage into a small batch, usually two to five questions.
 - Ask one question by itself only when its answer changes the next questions, it is a foundational product fork, or a previous answer needs clarification.
 - Always give one recommended answer and a brief reason for every question. When no product option can be responsibly preferred, recommend the next action, such as deferring the decision, gathering evidence, or asking the accountable owner.
@@ -55,41 +42,56 @@ Do not edit the specification or implementation while still in a read-only plann
 
 ## Scope Health Gate
 
-- Reassess semantic cohesion, not only file size. A specification remains focused while it supports one primary outcome and coherent workflow with compatible ownership, data, implementation, and verification boundaries.
-- Keep required prerequisites and handoffs together when they have no useful independent outcome. Do not split completed work merely to shorten files.
-- Narrow or split when an update adds an independently valuable workflow, a separately implementable or verifiable outcome, an independent integration or trust boundary, a separate data lifecycle, or its own failure and release path.
-- A shared page, actor, repository, milestone, or broad product theme does not justify appending independent work.
-- Treat unusual growth in acceptance criteria, design decisions, components, or tasks as a review signal. Counts trigger inspection; they are not hard limits.
-- If the specification has become an umbrella, retain its shared rules, dependencies, completed history, and release coordination. Extract unfinished independently executable work into child specifications without duplicating tasks or rewriting verified history.
+- Reassess semantic cohesion, not just file size. The specification remains focused only while its behavior supports one primary outcome and coherent workflow with compatible ownership, data, implementation, and verification boundaries.
+- Keep required prerequisites and handoffs together when they have no useful independent outcome. Do not split completed work merely to reduce line count.
+- Narrow or split when an update introduces an independently valuable workflow, a separately implementable or verifiable outcome, an unrelated integration or trust boundary, an independent data lifecycle, or a separate release and failure path.
+- A shared page, actor, repository, release milestone, or broad product theme does not justify appending independent work to the same specification.
+- Treat unusual growth in acceptance criteria, design decisions, components, or tasks compared with neighboring specifications as a review signal. Counts trigger inspection; they are not hard limits.
+- If an existing specification has become an umbrella, retain only its shared rules, dependencies, completed history, and release coordination. Use `update-spec` to narrow its active boundary, then use `add-spec` for each unfinished independently executable child. Do not duplicate tasks or rewrite verified history.
 - Classify the result as `focused specification`, `umbrella with child specifications`, or `split required`. A `split required` result blocks new implementation until the unfinished work has a focused active slice.
 
 ## Delivery Coverage Gate
 
-- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface required by the active slice.
-- Assign every surface to one primary task through its `Owned surfaces` field. Naming a surface only in purpose, proof, acceptance criteria, or verification does not assign implementation ownership.
-- Prefer vertical tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
-- Keep final end-to-end tasks focused on integration and verification of surfaces already owned elsewhere.
-- Resolve every unmapped or ambiguously owned surface before completion, or mark the active slice `Blocked` when the gap prevents implementation.
+- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface named by the active-slice requirements and design.
+- Assign every surface to one primary implementation task through its `Owned surfaces` field. Naming a surface only in purpose, proof, acceptance criteria, or the verification gate does not assign implementation ownership.
+- Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
+- Keep final end-to-end tasks focused on integration and verification of surfaces already owned elsewhere; do not make them the implicit owner of all pages or behavior.
+- Resolve every unmapped or ambiguously owned surface before completion, or mark tasks `Blocked` when the gap prevents active implementation.
+- Keep every acceptance criterion's `[AC-<n>]` ID stable across edits: assign the next unused integer to a new criterion and never renumber or reuse a retired one. Give each new `## Data and Access Boundaries` entity a backticked-name bullet.
+- Update the affected tasks' `Owns:` lines and the implementation boundary's deferred or release classifications whenever a criterion or entity is added, removed, reclassified, or reassigned. Keep every active criterion owned by exactly one task, every active entity by at least one, and every deferred or release item classified without an active owner. `validate_spec.py` enforces this coverage once the spec uses `[AC-<n>]` IDs; re-run it after the change.
 
-## Status Rules
+## Decision Rules
 
-- Move requirements back to `Draft` when the product agreement becomes incomplete.
-- Move tasks to `Blocked` only when an unresolved decision prevents active implementation or required verification.
-- Keep deployment-only unknowns in a release gate without representing the work as releasable.
-- Remove `Verified` when changed behavior is not proven by existing checks.
+- Distinguish stable domain identity, display labels, ownership scope, and uniqueness constraints.
+- Add concrete examples when rules involve naming, allocation, permissions, state transitions, ordering, or recovery.
+- Add concurrency, security, or failure implications only when they follow from the decision; keep unselected implementation details open.
+- Preserve the abstraction level of an accepted answer. Do not expand a simple business decision into implementation edge cases unless new evidence makes them product-significant.
+- Prefer one consolidated engineering question or blocker to enumerating algorithms, normalization rules, storage representations, or exhaustive technical edge cases.
+- Keep acceptance criteria representative and observable rather than turning them into a complete technical test matrix.
+- Name the earliest blocked stage for every unresolved item. A decision that affects only deployment or release must not block implementation or local verification when their contract is already stable.
 
-## Restrictions
+## tasks.md State Discipline
 
-- Do not implement the change.
-- Do not rewrite unrelated parts of the specification.
-- Do not remove a tradeoff without recording what replaced it.
-- Do not change acceptance criteria only to make a failing implementation pass.
-- Do not transfer engineering decision ownership to the user.
-- Do not continue implementation while an active implementation or verification blocker remains.
-- Do not let deployment-only evidence block implementation; keep it as a release gate.
-- Do not grow the progress log into a transcript of the discovery conversation.
-- Do not grow a specification across a scope-health split trigger merely because the new behavior is related.
+- Write every accepted decision back immediately, but place the durable decision in the current requirements, design, active boundary, blockers, or proof rather than relying on chronology.
+- Do not append a progress-log entry for every discovery answer or clarification. The progress log is not a conversation transcript and must not duplicate decisions already visible in current-state sections.
+- Add or update progress only for meaningful implementation movement, a verification result or invalidation, a specification status transition, or a consolidated discovery checkpoint that materially changes readiness or scope.
+- During an active discovery thread, update one current checkpoint in place or omit a progress entry when the changed current-state sections already provide a complete handoff.
+- Keep `tasks.md` limited to the current executable slice. Put future work in concise deferred boundaries or a separate specification instead of expanding the active task list.
+- Keep deployment-dependent evidence in a release gate when it is not required by the active implementation or verification contract.
+- When repetitive discovery history already exists, consolidate it without removing failed-check evidence, completed implementation history, or decisions that are not represented elsewhere.
+
+## Boundaries
+
+- Do not implement application changes.
+- Do not rewrite unrelated specification sections.
+- Do not erase a tradeoff without recording its replacement.
+- Do not weaken acceptance criteria to make failing code pass.
+- Do not mark implementation as resumable while an unresolved decision blocks product agreement, technical design, active-slice implementation, or required verification.
+- Do not let deployment-only evidence block implementation; preserve it as a release gate and do not claim release readiness.
+- Do not transfer engineering decision ownership to the user merely because the specification could contain more detail.
+- Do not grow `tasks.md` merely to prove that each conversational turn was written back.
+- Do not grow a specification across a scope-health split trigger merely because the new behavior is related to the existing feature.
 
 ## Completion
 
-The workflow is complete when the scope is classified and healthy, the changed decision and proof are visible, affected files agree, every required delivery surface has one clear owning task, stale questions are removed, `tasks.md` remains concise, available checks pass, and every readiness state is accurate.
+Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required delivery surface has one clear owning task, stale questions and blockers are removed, `tasks.md` remains a concise representation of the current executable state, available mechanical checks pass, and implementation state is accurate.

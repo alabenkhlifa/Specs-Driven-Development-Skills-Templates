@@ -35,6 +35,7 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Question Batching Rules
 
+- Before asking, check the existing specifications and recorded project decisions; do not ask for a decision that is already recorded.
 - Group related, independent questions that share one workflow context and readiness stage into a small batch, usually two to five questions.
 - Ask one question by itself only when its answer changes the next questions, it is a foundational product fork, or a previous answer needs clarification.
 - Always give one recommended answer and a brief reason for every question. When no product option can be responsibly preferred, recommend the next action, such as deferring the decision, gathering evidence, or asking the accountable owner.
@@ -63,7 +64,12 @@ Activate this skill as the workflow for creating one feature specification witho
 - Assign every surface to one primary implementation task through its `Owned surfaces` field. A surface is not covered when it appears only in purpose, proof, acceptance criteria, or the verification gate.
 - Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when they can be implemented and proved through one coherent scenario.
 - A final end-to-end task integrates and verifies surfaces already owned elsewhere; it must not silently own all otherwise unassigned pages or behavior.
+- Prefer decomposing a large foundational or bootstrap task into smaller provable units, and give each task a proof whose sub-proofs can be recorded and verified independently, so partial and environment-blocked progress stays trackable.
 - Resolve every unmapped or ambiguously owned surface before completion, or record it as an active implementation blocker.
+- Give every acceptance criterion a stable `[AC-<n>]` ID and never renumber or reuse it; a new criterion takes the next unused integer. List every `## Data and Access Boundaries` data entity as a bullet that begins with its backticked name and a colon (`` - `EntityName`: ... ``); that name is its traceability ID.
+- Declare active coverage on every task with exactly one `Owns:` line naming the `AC-<n>` IDs and `entity:<Name>` items it is accountable for, or `Owns: none` when it owns neither. Every active acceptance criterion must have exactly one task owner and every active data entity at least one.
+- Classify every criterion and entity outside the active slice under `Deferred criteria`, `Release criteria`, `Deferred entities`, or `Release entities` in the implementation boundary. A criterion or entity must be either task-owned or classified, never both.
+- `validate_spec.py` enforces this coverage once a spec adopts `[AC-<n>]` IDs, so a fresh agent resuming the slice reads the `Owns:` lines to see what each task delivers and what is still unowned instead of re-deriving the map from prose.
 
 ## Discovery Rules
 
@@ -74,6 +80,7 @@ Activate this skill as the workflow for creating one feature specification witho
 - Match specificity to decision ownership. Be exact about outcomes and constraints without making requirements exhaustive about implementation mechanics.
 - Use representative examples and acceptance criteria when they establish the rule. Do not expand them into a combinatorial technical test matrix.
 - Consolidate related engineering unknowns into one design gate instead of asking a sequence of implementation-level questions.
+- Do not ask about frameworks, libraries, architecture, storage, deployment, or other implementation mechanics while product requirements remain unresolved. When product requirements are complete, state that explicitly before moving to technical-design decisions.
 
 ## Boundaries
 

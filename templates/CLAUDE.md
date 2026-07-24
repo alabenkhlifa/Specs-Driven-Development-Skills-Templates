@@ -12,94 +12,31 @@ Do not replace an explicit project decision with an assumption.
 
 ## SDD Workflows
 
-Use the matching installed skill or command whenever the user's intent triggers it:
+Use the matching installed skill whenever the user's intent triggers it:
 
 - `add-spec`: define a new feature and its first executable slice.
-- `update-spec`: record a changed decision across an existing specification.
+- `update-spec`: record changed requirements, design, scope, ownership, or verification expectations.
 - `implement-spec`: implement and verify one approved active slice.
+- `review-spec`: independently review implemented work, re-run its proof, and route findings without fixing them.
 
-When one request combines specification changes with implementation, complete the specification workflow and stop. Start implementation only after the changed agreement and active slice are approved.
+Execute the canonical `SKILL.md` instead of imitating it. When one request combines a new or changed specification with implementation, complete the specification workflow and stop. Begin implementation only after the agreement and active slice are approved.
 
-Spec-only work must not continue into code, migrations, tests, dependencies, or runtime configuration.
+## Readiness And Write-Back
 
-## Decision Ownership
+- Report product-requirement, technical-design, implementation, verification, and release readiness separately.
+- Keep deployment-dependent evidence in a release gate when it is not needed for implementation or local verification.
+- Treat an unavailable service, runtime, daemon, credential, or network as an environment blocker for the affected proof. Continue independent work and record the blocker in `tasks.md`.
+- Persist accepted decisions, blockers, progress, proof results, and review checkpoints through the matching SDD workflow.
+- Do not mark a slice `Verified` while a required established check is failing or unavailable without an explicit accepted exception.
 
-- Ask users about observable behavior, workflow, scope, business rules, ownership, data handling, risk acceptance, and acceptance outcomes.
-- Keep implementation mechanisms, algorithms, normalization rules, storage representations, library choices, and exhaustive technical edge cases with engineering when alternatives preserve the accepted product outcome.
-- Ask about a technical alternative only when it changes observable behavior or requires explicit security, privacy, cost, or operational risk acceptance.
-- Use representative acceptance criteria. Do not duplicate a complete technical test matrix across requirements, design, and tasks.
+## Traceability
 
-## Specification Question Batches
-
-- Before asking, search the current requirements, design, tasks, and recorded project decisions. Do not ask for a decision that is already recorded.
-- Group related, independent user-owned questions that share one workflow context and readiness stage into a small batch, usually two to five questions.
-- Ask one question by itself only when its answer changes the next questions, it is a foundational product fork, or a previous answer needs clarification.
-- Always provide one recommended answer and a brief reason for every question. When no product option can be responsibly preferred, recommend the next action, such as deferring the decision, gathering evidence, or asking the accountable owner.
-- Format each batch so the user can answer every question individually or accept all recommendations together.
-- Do not mix product-discovery and technical-design questions in one batch.
-- After the user answers, apply the complete batch through one `update-spec` write-back and one validation pass before asking another batch or ending the session.
-
-## Product-First Sequence
-
-- Complete product requirements before asking technical-design or implementation questions.
-- During product discovery, do not ask about frameworks, libraries, architecture, protocols, data models, deployment, or test commands.
-- Record unresolved engineering decisions in `design.md` or `tasks.md` without presenting them as missing product requirements.
-- When product requirements are complete, state that explicitly and transition to technical design.
-- During technical design, make engineering-owned decisions from approved requirements, project constraints, official documentation, and existing repository patterns.
-- Do not begin implementation until the technical design and active slice are approved.
-
-## Readiness And Blocker Scope
-
-- Report product-requirement readiness, technical-design readiness, implementation state, verification state, and release readiness separately.
-- Every unresolved decision must name the earliest stage it blocks. A later-stage unknown must not make an earlier ready stage appear blocked.
-- Requirements may be `Approved` while technical design, implementation, verification, or release work remains.
-- Mark `tasks.md` as `Blocked` only when a decision prevents the active slice from starting, continuing, or completing required verification.
-- Keep deployment-dependent evidence in an explicit release gate. It blocks deployment and release claims without blocking implementation or local verification when the implementation contract is already approved.
-
-## Delivery Coverage
-
-- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface named by the active-slice requirements and design.
-- Map every surface to one primary implementation task through that task's `Owned surfaces` field. Resolve any unmapped or ambiguously owned surface before implementation.
-- Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
-- Treat browser checks and other tests as proof, not ownership of implementation. A page named only in proof remains unmapped.
-- Use a final end-to-end task to integrate and verify surfaces already owned by earlier tasks. It must not silently own otherwise unassigned pages, APIs, or supporting behavior.
-
-## Implementation Workflow
-
-1. Confirm that requirements and design contain no blocking open questions.
-2. Confirm that every required delivery surface has one unambiguous owning task.
-3. Work only from the active slice in `tasks.md`.
-4. Keep changes inside its implementation boundary.
-5. Implement one task at a time.
-6. Run the proof attached to each task before marking it complete.
-7. Run the full verification gate before calling the slice complete.
-8. Write progress and new decisions back to the spec files.
-
-## Stop Conditions
-
-Stop implementation and report the issue when:
-
-- The requested change expands the approved scope.
-- A missing business rule or design decision affects implementation.
-- The code, acceptance criteria, and existing system disagree.
-- A required check fails and cannot be fixed inside the approved slice.
-- A required delivery surface has no clear owning task.
-- Another task or agent is changing the same ownership area.
-
-Do not continue by silently choosing a new product or architecture decision.
-Do not stop implementation only because a recorded deployment or release gate remains incomplete. Do stop before crossing that gate.
-
-## Write-Back Rules
-
-- During discussion of an existing specification, write every accepted decision through `update-spec`.
-- After the user answers a specification question or related question batch, update every affected spec file before asking the next batch or ending the session.
-- Do not leave resolved questions, blockers, status changes, or progress only in the conversation.
-- A new conversation should recover state from the repository and need only the user's next intent.
-- Update `requirements.md` when expected behavior, scope, or a business rule changes.
-- Update `design.md` when a technical decision or tradeoff changes.
-- Update `tasks.md` when progress, verification state, blockers, release gates, or deferred work changes.
-
-Keep decisions in project files, not only in the conversation.
+- Give every acceptance criterion a stable `[AC-<n>]` ID.
+- Define every data entity as a backticked-name bullet under `## Data and Access Boundaries`.
+- Give every task one `Owned surfaces` field and exactly one `Owns:` line.
+- Assign every active criterion to exactly one task and every active data entity to at least one task.
+- Classify criteria and entities outside the active slice as deferred or release coverage; do not also assign them to an active task.
+- Run `python3 .agents/scripts/validate_spec.py specs/<feature>` after a specification or task-boundary change.
 
 ## Project Checks
 
@@ -108,5 +45,3 @@ Keep decisions in project files, not only in the conversation.
 - Type check: `<type-check command>`
 - Lint: `<lint command>`
 - Manual or browser verification: `<verification instructions>`
-
-Do not mark the slice `Verified` while a required check is failing.

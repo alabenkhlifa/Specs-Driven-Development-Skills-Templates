@@ -2,94 +2,108 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Codex Skills](https://img.shields.io/badge/Codex-skills-blue.svg)](skills/)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-commands-orange.svg)](.claude/commands/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-skills_and_commands-orange.svg)](.claude/)
 
-A practical foundation for guiding AI coding agents with explicit requirements, technical decisions, small implementation slices, verification gates, and durable project memory.
+A reusable Spec-Driven Development harness for defining, updating, implementing, and independently reviewing one approved implementation slice at a time.
 
-The ideas and workflow behind this repository are explained in the [Spec-Driven AI-Assisted Development article series](https://alabenkhalifa.dev/blog/series/spec-driven-ai-assisted-development/).
-
-Use the repository as a template to start with the complete structure, or copy only the skills and files your project needs.
+The workflow is explained in the [Spec-Driven AI-Assisted Development article series](https://alabenkhalifa.dev/blog/series/spec-driven-ai-assisted-development/).
 
 [Use this template](https://github.com/alabenkhlifa/Specs-Driven-Development-Skills-Templates/generate)
 
-The repository contains reusable templates and workflows for three operations:
+## Workflows
 
-- `add-spec`: turn a feature request into an initial specification and first executable slice without implementing it.
-- `update-spec`: update a specification when product or technical decisions change.
-- `implement-spec`: implement and verify one approved slice without silently changing the agreement.
+- `add-spec`: define a bounded feature and its first executable slice without implementing it.
+- `update-spec`: restore agreement when requirements, design, task boundaries, or verification expectations change.
+- `implement-spec`: implement and verify one approved active slice.
+- `review-spec`: independently re-run task proofs and the verification gate, report findings, and route fixes without changing code or the agreement.
+
+Specification changes stop before implementation. Review reports and routes findings; fixes return to `implement-spec`, while agreement changes return to `update-spec`.
 
 ## Repository Structure
 
 ```text
 .
-├── templates/               Copyable project and feature templates
-├── commands/                Tool-neutral workflow contracts
-├── skills/                  Installable Codex skills
-├── .claude/commands/        Claude Code slash commands
-├── examples/                Completed training-request example
-└── scripts/validate_repo.py Repository consistency checks
+├── skills/                  Canonical Agent Skills
+├── commands/                Tool-neutral mirrors of the skill contracts
+├── .claude/skills/          Links to the canonical skills
+├── .claude/commands/        Claude Code slash-command adapters
+├── templates/               Project instructions and feature-spec templates
+├── examples/                Completed training-request specification
+└── scripts/
+    ├── validate_spec.py     Mechanical validation for one specification
+    ├── test_validate_spec.py
+    └── validate_repo.py     Repository consistency checks
 ```
+
+The skill folders are canonical. `commands/` contains exact mirrors for tools that load standalone command files. The repository validator rejects drift between them.
 
 ## Start a Project
 
-1. Copy `templates/AGENTS.md` to the target project when using Codex or another agent that reads `AGENTS.md`.
-2. Copy `templates/CLAUDE.md` when using Claude Code. Keep both files aligned if the project uses both tools.
-3. Create `specs/<feature>/` and copy the three files from `templates/feature-spec/` into it.
-4. Replace every placeholder and configure the real project checks.
-5. Keep the first `tasks.md` limited to one executable slice.
+1. Copy `templates/AGENTS.md` to the project root. Also copy it as `CLAUDE.md` when both tools are used, and keep the two files identical.
+2. Copy the four folders under `skills/` into the project's `.agents/skills/`.
+3. Copy `scripts/validate_spec.py` and `scripts/test_validate_spec.py` into `.agents/scripts/`.
+4. For Claude Code 2.1.203 or newer, link each `.claude/skills/<name>` folder to `../../.agents/skills/<name>` so Claude and Codex execute the same skill files.
+5. Create `specs/<feature>/` from `templates/feature-spec/` and replace every placeholder.
+6. Configure the real project checks in the root instruction files.
 
-Requirements can be `Approved` while design, implementation, verification, or release work remains. Mark tasks `Blocked` only when a decision prevents active implementation or required verification. Keep deployment-only evidence in a release gate, and do not mark a slice `Verified` while a required check is failing.
+The slash-command adapters remain available for projects that use `.claude/commands/`: copy both `commands/` and `.claude/commands/` to the project.
+
+## Traceability Contract
+
+The templates make the active slice recoverable without re-reading the full conversation:
+
+- Requirements give every acceptance criterion a stable ID such as `[AC-01]`.
+- Design defines each data entity with a bullet such as ``- `TrainingRequest`: ...``.
+- `Owned surfaces` maps concrete UI, API, domain, persistence, integration, privacy, security, and operational surfaces to one primary implementation task.
+- Every task has exactly one `Owns:` line. Active criteria have exactly one task owner, and active data entities have at least one.
+- Criteria and entities outside the active slice are classified as deferred or release coverage in the implementation boundary. An item cannot be both task-owned and classified.
+
+Run the specification validator after every agreement or task-boundary change:
+
+```bash
+python3 .agents/scripts/validate_spec.py specs/<feature>
+```
 
 ## Use with Codex
 
-The folders under `skills/` are self-contained Codex skills. Copy the skills you want into your Codex skills directory, then start a new task so they can be discovered.
-
-Example invocations:
+Codex discovers repository-local skills under `.agents/skills/`. Example requests:
 
 ```text
 Use $add-spec to specify the account export feature.
 Use $update-spec to record the new retention requirement.
 Use $implement-spec to implement the active approved slice.
+Use $review-spec to independently review the completed slice.
 ```
-
-For complex or ambiguous spec work, use Plan mode for investigation and decision-making. Return to Default mode before creating or editing spec files.
 
 ## Use with Claude Code
 
-Copy both `commands/` and `.claude/commands/` into the target repository. The `.claude` files are small adapters that load the canonical contracts from `commands/`. The commands become:
+Claude Code can discover the linked canonical skills under `.claude/skills/`. The optional slash commands are:
 
 ```text
 /add-spec
 /update-spec
 /implement-spec
+/review-spec
 ```
 
-Copy `templates/CLAUDE.md` to the project root and replace the project-check placeholders.
+## Readiness Rules
 
-## Tool-Neutral Use
+Report product requirements, technical design, implementation, verification, and release readiness separately. A deployment-only gate blocks release, not local implementation or verification. An unavailable service, runtime, daemon, credential, or network is an environment blocker for the affected proof, not automatically an implementation defect.
 
-The Markdown contracts under `commands/` can be adapted to another coding agent. Preserve their boundaries:
+Never mark a slice `Verified` while a required established check is failing or unavailable without an explicit accepted exception.
 
-- Spec commands may inspect code but do not implement application changes.
-- Implementation works only from an approved active slice.
-- Every unresolved decision names the earliest stage it blocks.
-- Product requirements, technical design, implementation, verification, and release readiness are reported separately.
-- Related independent questions are asked in small batches, and every question includes a recommended answer with a brief reason.
-- Each answered batch is written back and validated once before another batch starts.
-- Missing active-slice decisions and boundary changes stop implementation; deployment-only gates stop deployment and release claims.
-- Progress, failures, and new decisions are written back to project files.
-
-## Validate Changes
+## Validate This Repository
 
 ```bash
+python3 scripts/test_validate_spec.py
 python3 scripts/validate_repo.py
 ```
 
-The validator checks required files, skill metadata, command adapters, placeholders in the completed example, and the synchronization of duplicated templates.
+The repository validator checks required files, skill metadata, skill-command synchronization, Claude adapters and links, duplicated templates, unresolved example placeholders, the completed example specification, and instruction-file synchronization.
 
 ## Example
 
-`examples/training-request/` contains a completed specification for a colleague submitting a training request for Office Management review.
+`examples/training-request/` contains a complete specification for a colleague submitting a training request for Office Management review.
 
 ## License
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Spec"
+  short_description: "Independently review an implemented SDD slice against its spec"
+  default_prompt: "Use $review-spec to review the implementation of this slice against its specification, re-run its proofs, and report findings without changing the code or the agreement."

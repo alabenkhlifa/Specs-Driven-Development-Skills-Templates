@@ -1,51 +1,41 @@
+---
+name: add-spec
+description: Create an initial Spec-Driven Development feature specification by inspecting the project, discovering the real users and workflow, resolving consequential product questions, and writing requirements.md, design.md, and tasks.md without implementing code. Use when a user asks to define, brainstorm, specify, plan, scope, or prepare a new feature or implementation slice, including product discovery before technologies are selected.
+---
+
 # Add Spec
 
-## Purpose
-
-Create an initial specification for one feature and its first executable slice without implementing application code.
-
-## Input
-
-- Feature description supplied by the user
-- Relevant existing code, documentation, specifications, and project instructions
-
-## Optional Plan Stage
-
-For complex, ambiguous, or cross-cutting changes:
-
-1. Enter the agent's read-only planning mode.
-2. Inspect the existing system and establish the users, prerequisites, workflow, and product boundary.
-3. Resolve consequential user-owned questions without creating or editing files.
-4. Produce a proposed specification and readiness assessment.
-5. Return to a writable mode.
-6. Run this workflow with the proposal as input.
-
-Do not claim that specification files were created while the agent is still in a read-only planning mode.
+Activate this skill as the workflow for creating one feature specification without implementing application code.
 
 ## Workflow
 
-1. Read the project instruction file and related existing specifications.
-2. Inspect the current system where the feature will connect.
+1. Read the applicable `AGENTS.md` and existing specifications.
+2. Inspect the code and documentation where the feature connects.
 3. Establish product behavior before architecture:
-   - Identify the real users and their expected technical knowledge.
+   - Identify the real user roles and their expected technical knowledge.
    - Identify entry conditions and prerequisites.
    - Map the primary workflow in the order the user experiences it.
    - Define the outcome, scope, rules, acceptance criteria, and failure behavior.
-4. Separate product decisions from technology decisions. When technology is intentionally deferred, describe logical responsibilities, boundaries, interfaces, risks, and implementation blockers without inventing a stack.
-5. Ask the user when the answer changes observable behavior, workflow, scope, a business rule, ownership, data handling, risk acceptance, or an acceptance outcome. Keep equivalent implementation mechanisms as engineering decisions.
-6. Classify every unresolved decision by the earliest stage it blocks: product requirements, technical design, active-slice implementation, required verification, or deployment and release.
+4. Separate product decisions from technology decisions. When technology is intentionally deferred, describe logical responsibilities, boundaries, interfaces, risks, and the decisions that block implementation without inventing a stack.
+5. Apply a decision-ownership gate before asking a question:
+   - Ask the user when the answer changes observable behavior, workflow, scope, a business rule, ownership, data handling, risk acceptance, or an acceptance outcome.
+   - When alternatives preserve the accepted product outcome, record the implementation mechanism as a consolidated design question or task blocker for engineering instead of asking the user to choose it.
+6. Classify every unresolved decision by the earliest readiness stage it blocks: product requirements, technical design, active-slice implementation, required verification, or deployment and release. Do not let a later-stage unknown block an earlier ready stage.
 7. Resolve user-owned decisions through the Question Batching Rules below.
 8. Run the Scope Health Gate before writing the specification and repeat it if discovery or design adds another workflow, integration, trust boundary, or independently verifiable outcome.
-9. Stop discovery when there is enough agreement for a useful `Draft`.
-10. Create `specs/<feature>/requirements.md`, `design.md`, and `tasks.md` from the bundled templates.
-11. Define the full bounded feature in requirements and design. Keep `tasks.md` limited to the first end-to-end executable slice and record later work as deferred.
-12. Keep deployment-dependent evidence that is not needed for implementation or local verification in the release boundary.
-13. Run the Delivery Coverage Gate before completing the task plan.
-14. Set status by stage: requirements remain `Draft` while the product agreement is incomplete, and tasks are `Blocked` only when active implementation or required verification cannot proceed.
-15. Run available specification checks and report the scope classification, delivery-coverage result, assumptions, unresolved questions with their blocked stages, the active boundary, and readiness for product, design, implementation, verification, and release.
+9. Stop discovery once there is enough agreement to write a useful `Draft`. Record remaining decisions under `Open Questions` instead of extending the conversation indefinitely.
+10. Define the bounded feature in `requirements.md` and `design.md`, then limit `tasks.md` to the first end-to-end executable slice. Record required later behavior as deferred after the active slice, not as part of its implementation boundary.
+11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
+12. Run the Delivery Coverage Gate before completing the task plan.
+13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
+14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
+15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` only while a decision prevents active implementation or required verification. Never present incomplete release gates as release-ready.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that requirements, design, tasks, proof, scope classification, and delivery coverage agree.
+17. Report the scope classification, delivery-coverage result including any unmapped or ambiguous surfaces, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
+- Before asking, check the existing specifications and recorded project decisions; do not ask for a decision that is already recorded.
 - Group related, independent questions that share one workflow context and readiness stage into a small batch, usually two to five questions.
 - Ask one question by itself only when its answer changes the next questions, it is a foundational product fork, or a previous answer needs clarification.
 - Always give one recommended answer and a brief reason for every question. When no product option can be responsibly preferred, recommend the next action, such as deferring the decision, gathering evidence, or asking the accountable owner.
@@ -55,32 +45,54 @@ Do not claim that specification files were created while the agent is still in a
 
 ## Scope Health Gate
 
-- Judge scope by semantic cohesion, not line count. A focused specification has one primary outcome, one coherent entry-to-completion workflow, compatible ownership and data boundaries, and one executable slice that can be verified without unrelated work.
-- Keep prerequisites and handoffs together when they have no useful independent outcome. Do not split only to shorten files.
-- Split before approval when the specification contains independently valuable workflows, separately implementable or verifiable outcomes, independent integrations, trust boundaries, data lifecycles, failure paths, or release gates.
-- A shared page, actor, repository, milestone, or broad product theme is not enough to keep independent behavior in one specification.
-- Treat unusual growth in acceptance criteria, design decisions, components, or tasks as a review signal, not a numeric limit.
-- When an umbrella is useful, keep shared rules, dependencies, and release coordination there. Move independently executable outcomes into child specifications without duplicating their tasks.
-- Classify the result as `focused specification`, `umbrella with child specifications`, or `split required`. Resolve `split required` before implementation begins.
+- Judge scope by semantic cohesion, not line count. A focused specification has one primary user or business outcome, one coherent entry-to-completion workflow, compatible ownership and data boundaries, and one executable slice that can be verified without unrelated work.
+- Keep required prerequisites and handoffs together when they have no useful independent outcome. Do not split only to make files shorter.
+- Split before approval when any of these are true:
+  - The specification contains multiple independently valuable user outcomes or primary workflows.
+  - One part can be implemented, verified, or released without the others and is not merely a prerequisite or handoff.
+  - The requirements combine integrations, trust boundaries, data lifecycles, or operational responsibilities with independent failure and verification paths.
+  - The document is becoming both a product feature contract and a general application-foundation, deployment, or platform handbook.
+  - The active slice would require separate independent verification gates rather than one end-to-end proof.
+- A shared page, actor, repository, release milestone, or broad product theme is not sufficient reason to keep independent behavior in one specification.
+- Treat unusual growth in acceptance criteria, design decisions, components, or tasks compared with neighboring specifications as a review signal, not an automatic failure or numeric limit.
+- When shared behavior needs an umbrella specification, keep only cross-slice rules, dependencies, and release coordination there. Create child specifications for independently executable outcomes, and do not duplicate their implementation tasks in the umbrella.
+- Before writing or approving, classify the result as `focused specification`, `umbrella with child specifications`, or `split required`, and record the rationale in the report. Resolve `split required` before implementation begins.
 
 ## Delivery Coverage Gate
 
-- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface required by the active slice.
-- Assign every surface to one primary task through its `Owned surfaces` field. Purpose, proof, acceptance criteria, and verification do not assign implementation ownership.
-- Prefer vertical tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
-- Keep the final end-to-end task focused on integration and verification of surfaces already owned elsewhere.
+- Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface named by the active-slice requirements and design.
+- Assign every surface to one primary implementation task through its `Owned surfaces` field. A surface is not covered when it appears only in purpose, proof, acceptance criteria, or the verification gate.
+- Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when they can be implemented and proved through one coherent scenario.
+- A final end-to-end task integrates and verifies surfaces already owned elsewhere; it must not silently own all otherwise unassigned pages or behavior.
+- Prefer decomposing a large foundational or bootstrap task into smaller provable units, and give each task a proof whose sub-proofs can be recorded and verified independently, so partial and environment-blocked progress stays trackable.
 - Resolve every unmapped or ambiguously owned surface before completion, or record it as an active implementation blocker.
+- Give every acceptance criterion a stable `[AC-<n>]` ID and never renumber or reuse it; a new criterion takes the next unused integer. List every `## Data and Access Boundaries` data entity as a bullet that begins with its backticked name and a colon (`` - `EntityName`: ... ``); that name is its traceability ID.
+- Declare active coverage on every task with exactly one `Owns:` line naming the `AC-<n>` IDs and `entity:<Name>` items it is accountable for, or `Owns: none` when it owns neither. Every active acceptance criterion must have exactly one task owner and every active data entity at least one.
+- Classify every criterion and entity outside the active slice under `Deferred criteria`, `Release criteria`, `Deferred entities`, or `Release entities` in the implementation boundary. A criterion or entity must be either task-owned or classified, never both.
+- `validate_spec.py` enforces this coverage once a spec adopts `[AC-<n>]` IDs, so a fresh agent resuming the slice reads the `Owns:` lines to see what each task delivers and what is still unowned instead of re-deriving the map from prose.
 
-## Restrictions
+## Discovery Rules
 
-- Do not implement application code.
-- Do not create migrations, tests, API behavior, or UI changes.
-- Do not resolve consequential product or architecture decisions silently.
-- Do not ask the user to choose engineering mechanisms that preserve the accepted product outcome.
+- Do not assume the primary user is a developer because the product concerns software or AI agents.
+- Do not start from the most technically interesting capability. Follow prerequisites and the user's operational order.
+- Write rules with concrete examples when naming, allocation, ownership, permissions, state transitions, or failure recovery could be interpreted more than one way.
+- Distinguish stable domain identity, display labels, ownership scope, and uniqueness constraints.
+- Match specificity to decision ownership. Be exact about outcomes and constraints without making requirements exhaustive about implementation mechanics.
+- Use representative examples and acceptance criteria when they establish the rule. Do not expand them into a combinatorial technical test matrix.
+- Consolidate related engineering unknowns into one design gate instead of asking a sequence of implementation-level questions.
+- Do not ask about frameworks, libraries, architecture, storage, deployment, or other implementation mechanics while product requirements remain unresolved. When product requirements are complete, state that explicitly before moving to technical-design decisions.
+
+## Boundaries
+
+- Do not implement code, migrations, tests, APIs, or UI behavior.
+- Do not silently decide consequential product or architecture questions.
+- Do not select technologies the user intentionally deferred.
+- Do not transfer engineering decision ownership to the user merely because the specification could contain more detail.
 - Do not mark requirements `Approved` while the product agreement is incomplete.
 - Do not mark active tasks unblocked while design, implementation, or required-verification blockers remain.
-- Do not describe the feature as releasable while a release gate remains incomplete.
+- Do not describe a feature as releasable while a release gate remains incomplete.
+- Keep real specification files free of teaching labels or unexplained placeholders.
 
 ## Completion
 
-The workflow is complete when the scope is classified and healthy, all three files agree on the feature and first active slice, every required delivery surface has one clear owning task, available checks pass, and every remaining decision and blocked stage is visible.
+Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required delivery surface has one clear owning task, available mechanical checks pass, and the next required decision is visible.

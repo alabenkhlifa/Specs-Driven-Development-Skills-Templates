@@ -15,8 +15,12 @@
 
 ## Data and Access Boundaries
 
-- <Who can read or change the data?>
-- <Ownership, permission, validation, or storage boundary>
+- `EntityName`: <what this record holds, its ownership scope, and lifecycle state>.
+- `AnotherEntity`: <another stored record this slice introduces>.
+
+Required boundaries:
+
+- <Who can read or change the data; ownership, permission, validation, or storage boundary>
 
 ## Interfaces
 

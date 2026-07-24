@@ -15,7 +15,7 @@ A colleague can submit a training request, see it after submission, and provide 
 
 ## In Scope
 
-- Submit a request with title, provider, cost, and business justification.
+- Submit a request with title, provider, cost, currency, and business justification.
 - Show the submitted request to its owner.
 - Show submitted requests in the Office Management review queue.
 
@@ -40,10 +40,10 @@ A colleague can submit a training request, see it after submission, and provide 
 
 ## Acceptance Criteria
 
-- Given a valid request, when a colleague submits it, then it appears in their request list with status `Submitted`.
-- Given a submitted request, when Office Management opens the review queue, then the request is visible with its business context.
-- Given a request owned by another colleague, when a colleague tries to access it, then access is denied.
-- Given a draft request, when Office Management opens the review queue, then the draft is not visible.
+- [AC-01] Given a valid request, when a colleague submits it, then it appears in their request list with status `Submitted`.
+- [AC-02] Given a submitted request, when Office Management opens the review queue, then the request is visible with its business context.
+- [AC-03] Given a request owned by another colleague, when a colleague tries to access it, then access is denied.
+- [AC-04] Given a draft request, when Office Management opens the review queue, then the draft is not visible.
 
 ## Open Questions
 

@@ -17,7 +17,7 @@ Add a training-request resource with separate owner and Office Management querie
 
 ## Data and Access Boundaries
 
-- A request stores its owner identifier.
+- `TrainingRequest`: stores its owner identifier, title, provider, cost, currency, business justification, and current status.
 - Colleague queries always filter by the authenticated owner.
 - Office Management queries include only `Submitted` requests.
 - Authorization does not depend on client-side filtering.
@@ -45,4 +45,3 @@ Add a training-request resource with separate owner and Office Management querie
 ## Open Questions
 
 None.
-
