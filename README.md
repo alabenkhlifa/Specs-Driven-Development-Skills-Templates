@@ -48,17 +48,19 @@ The skill folders are canonical. `commands/` contains exact mirrors for tools th
 
 The slash-command adapters remain available for projects that use `.claude/commands/`: copy both `commands/` and `.claude/commands/` to the project.
 
-## Traceability Contract
+## Task Planning And Traceability Contract
 
 The templates make the active slice recoverable without re-reading the full conversation:
 
 - Requirements give every acceptance criterion a stable ID such as `[AC-01]`.
 - Design defines each data entity with a bullet such as ``- `TrainingRequest`: ...``.
+- Tasks use stable `Task <n>` labels and exactly one `Depends on:` line that names earlier tasks or `none`.
 - `Owned surfaces` maps concrete UI, API, domain, persistence, integration, privacy, security, and operational surfaces to one primary implementation task.
 - Every task has exactly one `Owns:` line. Active criteria have exactly one task owner, and active data entities have at least one.
 - Criteria and entities outside the active slice are classified as deferred or release coverage in the implementation boundary. An item cannot be both task-owned and classified.
+- Before approval, the specification workflow simulates the tasks in listed order. Every required schema, interface, route, service, fixture, or earlier result must already exist, belong to the same task, or come from an earlier dependency. A later-owned prerequisite is resolved in the specification instead of becoming an implementation-time question.
 
-Run the specification validator after every agreement or task-boundary change:
+Run the specification validator after every agreement or task-boundary change. It checks the task dependency structure and traceability declarations; the semantic sequence simulation remains part of the specification workflow:
 
 ```bash
 python3 .agents/scripts/validate_spec.py specs/<feature>

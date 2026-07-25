@@ -9,7 +9,7 @@ Activate this skill to review an implemented slice against its specification as 
 
 ## Preconditions
 
-- Confirm the target `specs/<feature>/` exists, then identify the active slice, its task-owned acceptance criteria and data entities, its deferred and release classifications, and the tasks it claims complete.
+- Confirm the target `specs/<feature>/` exists, then identify the active slice, its task dependencies, its task-owned acceptance criteria and data entities, its deferred and release classifications, and the tasks it claims complete.
 - Prefer running as a different agent than the one that implemented the slice. Self-review is allowed but must apply the same evidence standard.
 - Confirm the canonical project checks are available. When a required proof cannot run in this environment, report it as unverified rather than assume it passes.
 - Inspect the working tree first. Treat existing uncommitted changes as intentional work from the user or another agent and do not modify or revert them.
@@ -17,8 +17,8 @@ Activate this skill to review an implemented slice against its specification as 
 ## Workflow
 
 1. Read the applicable `AGENTS.md` and all three specification files for the target slice.
-2. Establish the contract under review: the active-slice boundary, each task's purpose, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
-3. Inspect the actual implementation for every task claimed complete: code, tests, migrations, configuration, and generated assets. Map each task-owned acceptance criterion, data entity, and owned surface to the code that satisfies it.
+2. Establish the contract under review: the active-slice boundary, each task's purpose, `Depends on:` prerequisites, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
+3. Inspect the actual implementation for every task claimed complete: code, tests, migrations, configuration, and generated assets. Map each task-owned acceptance criterion, data entity, and owned surface to the code that satisfies it, and confirm the task did not silently pull forward a surface first owned by a later task.
 4. Verify by re-running evidence, not by trusting claims: re-run each completed task's attached proof and the verification-gate commands. Record the exact command, its result, and any environment-only gaps.
 5. Assess every Review Dimension below and collect findings.
 6. Classify and report findings by severity, each mapped to its acceptance criterion, task, or owned surface, with `file:line` and one recommended action and route.
@@ -30,7 +30,7 @@ Activate this skill to review an implemented slice against its specification as 
 
 - Correctness: the implementation does what the requirements and design specify, including the failure behavior and edge cases the spec names.
 - Completeness: every task-owned acceptance criterion, data entity, and owned surface for the reviewed tasks is implemented and proved; nothing claimed complete is partial, and deferred or release coverage is not misreported as active work.
-- Scope adherence: nothing is built outside the active-slice boundary, and nothing inside the boundary was silently skipped or deferred without record.
+- Scope adherence: nothing is built outside the active-slice boundary, nothing inside the boundary was silently skipped or deferred without record, and each completed task was executable from the baseline plus its declared earlier dependencies without pulling forward a later-owned surface.
 - Proof and gate integrity: each completed task's proof and the verification gate actually reproduce; claimed-passing checks are not stale, skipped, weakened, or falsely reported.
 - Privacy and security: schemas, logs, caches, backups, exports, workers, and processors honor the GDPR data contract, minimization, retention, least privilege, secret isolation, and the no-analytics rule.
 - Spec-to-code drift: the code, acceptance criteria, and existing system agree; where they disagree, the disagreement is reported, not silently reconciled.

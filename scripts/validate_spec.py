@@ -59,6 +59,8 @@ PLACEHOLDER_PATTERNS = (
 ACCEPTANCE_ID_RE = re.compile(r"^\[(AC-\d+)\]\s+\S")
 ENTITY_DEFINITION_RE = re.compile(r"^- `([A-Za-z][A-Za-z0-9]*)`:", re.MULTILINE)
 TASK_HEADING_RE = re.compile(r"^- \[[ xX]\]\s+(.+)$")
+TASK_ID_RE = re.compile(r"^Task \d+$")
+DEPENDS_LINE_RE = re.compile(r"^\s*- Depends on:\s*(.+)$")
 OWNS_LINE_RE = re.compile(r"^\s*- Owns:\s*(.+)$")
 OWNS_TOKEN_RE = re.compile(r"^(AC-\d+|entity:[A-Za-z][A-Za-z0-9]*)$")
 TRACEABILITY_CLASS_RE = re.compile(
@@ -194,6 +196,92 @@ def collect_task_owners(
                 malformed.append((current_label, token))
     task_counts = [(str(task["label"]), int(task["owns_count"])) for task in tasks]
     return owners, malformed, task_counts, structural_errors
+
+
+def collect_task_dependency_lines(tasks_body: str) -> tuple[list[tuple[str, list[str]]], list[str]]:
+    """Collect each task label and its Depends on declarations."""
+    tasks: list[tuple[str, list[str]]] = []
+    structural_errors: list[str] = []
+    current_index: int | None = None
+    for line in tasks_body.splitlines():
+        heading = TASK_HEADING_RE.match(line)
+        if heading:
+            label = re.split(r"\s[—-]\s", heading.group(1), maxsplit=1)[0].strip()
+            tasks.append((label, []))
+            current_index = len(tasks) - 1
+            continue
+        depends = DEPENDS_LINE_RE.match(line)
+        if not depends:
+            continue
+        if current_index is None:
+            structural_errors.append("Depends on line appears before the first task")
+            continue
+        tasks[current_index][1].append(depends.group(1).strip())
+    return tasks, structural_errors
+
+
+def validate_task_dependencies(spec_dir: Path, contents: dict[str, str]) -> list[str]:
+    """Validate stable task labels and backward-only dependencies when adopted."""
+    errors: list[str] = []
+    tasks_path = spec_dir / "tasks.md"
+    tasks, structural_errors = collect_task_dependency_lines(
+        section_body(contents["tasks.md"], "## Tasks")
+    )
+    for error in structural_errors:
+        errors.append(f"{tasks_path}: {error}")
+
+    # Opt-in: legacy specifications without Depends on declarations remain valid.
+    if not any(lines for _, lines in tasks):
+        return errors
+
+    labels = [label for label, _ in tasks]
+    positions: dict[str, int] = {}
+    for position, label in enumerate(labels):
+        if not TASK_ID_RE.fullmatch(label):
+            errors.append(
+                f"{tasks_path}: dependency-enabled task label {label!r} must be 'Task <n>'"
+            )
+        if label in positions:
+            errors.append(f"{tasks_path}: duplicate task label {label}")
+        else:
+            positions[label] = position
+
+    for position, (label, declarations) in enumerate(tasks):
+        if len(declarations) == 0:
+            errors.append(f"{tasks_path}: {label} is missing a Depends on line")
+            continue
+        if len(declarations) > 1:
+            errors.append(f"{tasks_path}: {label} has multiple Depends on lines")
+            continue
+
+        content = declarations[0]
+        if content.lower() in {"none", "none."}:
+            continue
+
+        dependencies = [raw.strip() for raw in content.split(",") if raw.strip()]
+        if not dependencies:
+            errors.append(f"{tasks_path}: {label} Depends on line is empty")
+            continue
+        seen: set[str] = set()
+        for dependency in dependencies:
+            if not TASK_ID_RE.fullmatch(dependency):
+                errors.append(
+                    f"{tasks_path}: {label} dependency {dependency!r} is not 'Task <n>' or 'none'"
+                )
+                continue
+            if dependency in seen:
+                errors.append(f"{tasks_path}: {label} repeats dependency {dependency}")
+                continue
+            seen.add(dependency)
+            dependency_position = positions.get(dependency)
+            if dependency_position is None:
+                errors.append(f"{tasks_path}: {label} depends on unknown task {dependency}")
+            elif dependency_position >= position:
+                errors.append(
+                    f"{tasks_path}: {label} depends on {dependency}, which is not an earlier task"
+                )
+
+    return errors
 
 
 def collect_traceability_classes(
@@ -358,6 +446,7 @@ def main() -> int:
 
     if len(contents) == len(REQUIRED_FILES):
         errors.extend(validate_cross_file(spec_dir, contents))
+        errors.extend(validate_task_dependencies(spec_dir, contents))
         errors.extend(validate_traceability(spec_dir, contents))
 
     if errors:

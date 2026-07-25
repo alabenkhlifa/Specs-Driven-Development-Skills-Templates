@@ -26,12 +26,12 @@ Activate this skill as the workflow for creating one feature specification witho
 9. Stop discovery once there is enough agreement to write a useful `Draft`. Record remaining decisions under `Open Questions` instead of extending the conversation indefinitely.
 10. Define the bounded feature in `requirements.md` and `design.md`, then limit `tasks.md` to the first end-to-end executable slice. Record required later behavior as deferred after the active slice, not as part of its implementation boundary.
 11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
-12. Run the Delivery Coverage Gate before completing the task plan.
+12. Run the Delivery Coverage and Sequence Gate before completing the task plan.
 13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
 14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
 15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` only while a decision prevents active implementation or required verification. Never present incomplete release gates as release-ready.
-16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that requirements, design, tasks, proof, scope classification, and delivery coverage agree.
-17. Report the scope classification, delivery-coverage result including any unmapped or ambiguous surfaces, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that requirements, design, tasks, proof, scope classification, delivery coverage, and task sequence agree.
+17. Report the scope classification, delivery-coverage and sequence result including any unmapped, ambiguous, or forward-dependent surfaces, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -58,14 +58,18 @@ Activate this skill as the workflow for creating one feature specification witho
 - When shared behavior needs an umbrella specification, keep only cross-slice rules, dependencies, and release coordination there. Create child specifications for independently executable outcomes, and do not duplicate their implementation tasks in the umbrella.
 - Before writing or approving, classify the result as `focused specification`, `umbrella with child specifications`, or `split required`, and record the rationale in the report. Resolve `split required` before implementation begins.
 
-## Delivery Coverage Gate
+## Delivery Coverage And Sequence Gate
 
 - Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface named by the active-slice requirements and design.
 - Assign every surface to one primary implementation task through its `Owned surfaces` field. A surface is not covered when it appears only in purpose, proof, acceptance criteria, or the verification gate.
 - Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when they can be implemented and proved through one coherent scenario.
 - A final end-to-end task integrates and verifies surfaces already owned elsewhere; it must not silently own all otherwise unassigned pages or behavior.
+- After assigning surfaces, simulate the tasks in listed order. For each task, inspect its purpose, owned surfaces, traceability items, and proof, then identify every schema, interface, route, service, fixture, and earlier task output it needs.
+- Require every prerequisite to exist in the baseline or be delivered by the same task or an earlier task. When the task itself introduces a prerequisite, name that artifact in `Owned surfaces` and cover it in the task proof. A surface first delivered by a later task is a forward dependency even when eventual ownership and traceability are complete.
+- Resolve each forward dependency by moving the foundation to the earliest consumer, defining an explicit stable early contract plus a later additive extension, reordering the tasks, or blocking the affected task. Do not leave the decision for implementation-time clarification.
 - Prefer decomposing a large foundational or bootstrap task into smaller provable units, and give each task a proof whose sub-proofs can be recorded and verified independently, so partial and environment-blocked progress stays trackable.
 - Resolve every unmapped or ambiguously owned surface before completion, or record it as an active implementation blocker.
+- Give every task a stable `Task <n>` label and never renumber or reuse it. Add exactly one `Depends on:` line naming earlier task labels or `none`. Treat this declaration as navigation and validator input, not as a substitute for the semantic sequence simulation.
 - Give every acceptance criterion a stable `[AC-<n>]` ID and never renumber or reuse it; a new criterion takes the next unused integer. List every `## Data and Access Boundaries` data entity as a bullet that begins with its backticked name and a colon (`` - `EntityName`: ... ``); that name is its traceability ID.
 - Declare active coverage on every task with exactly one `Owns:` line naming the `AC-<n>` IDs and `entity:<Name>` items it is accountable for, or `Owns: none` when it owns neither. Every active acceptance criterion must have exactly one task owner and every active data entity at least one.
 - Classify every criterion and entity outside the active slice under `Deferred criteria`, `Release criteria`, `Deferred entities`, or `Release entities` in the implementation boundary. A criterion or entity must be either task-owned or classified, never both.
@@ -95,4 +99,4 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Completion
 
-Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required delivery surface has one clear owning task, available mechanical checks pass, and the next required decision is visible.
+Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required delivery surface has one clear owning task, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.

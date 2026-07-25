@@ -25,10 +25,10 @@ Activate this skill as the workflow for restoring agreement between requirements
    - `tasks.md`: active-slice boundary, implementation steps, proof, verification gate, active blockers, release gates, deferred work, and progress state when it materially changes.
 10. Remove or replace resolved questions, stale blockers, contradicted wording, and invalid proof. Consolidate obsolete or repetitive discovery checkpoints after confirming their durable decisions live in the current requirements, design, and task state. Preserve a replaced tradeoff by recording the new choice and consequence.
 11. Keep technologies deferred when the decision is still product-level. Add technical consequences as open questions instead of selecting a stack implicitly.
-12. Run the Delivery Coverage Gate whenever requirements, design, or the active task plan changes.
+12. Run the Delivery Coverage and Sequence Gate whenever requirements, design, or the active task plan changes.
 13. Set status by the affected stage. Move requirements to `Draft` when the product agreement becomes incomplete, move tasks to `Blocked` only when active implementation or required verification cannot proceed, and remove `Verified` whenever existing proof no longer covers the changed behavior. Keep deployment-only unknowns in an explicit release gate without representing the work as releasable.
-14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` once after applying the batch when the project validator exists, then manually confirm that every changed decision, proof, scope classification, and delivery-coverage mapping agrees across files.
-15. Report the scope classification, delivery-coverage result including any unmapped or ambiguous surfaces, changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
+14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` once after applying the batch when the project validator exists, then manually confirm that every changed decision, proof, scope classification, delivery-coverage mapping, and task dependency agrees across files.
+15. Report the scope classification, delivery-coverage and sequence result including any unmapped, ambiguous, or forward-dependent surfaces, changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -50,13 +50,17 @@ Activate this skill as the workflow for restoring agreement between requirements
 - If an existing specification has become an umbrella, retain only its shared rules, dependencies, completed history, and release coordination. Use `update-spec` to narrow its active boundary, then use `add-spec` for each unfinished independently executable child. Do not duplicate tasks or rewrite verified history.
 - Classify the result as `focused specification`, `umbrella with child specifications`, or `split required`. A `split required` result blocks new implementation until the unfinished work has a focused active slice.
 
-## Delivery Coverage Gate
+## Delivery Coverage And Sequence Gate
 
 - Inventory every UI, API, domain, persistence, integration, security or privacy, and operational surface named by the active-slice requirements and design.
 - Assign every surface to one primary implementation task through its `Owned surfaces` field. Naming a surface only in purpose, proof, acceptance criteria, or the verification gate does not assign implementation ownership.
 - Prefer vertical workflow tasks that own user-visible UI and its supporting logic together when one scenario can implement and prove them coherently.
 - Keep final end-to-end tasks focused on integration and verification of surfaces already owned elsewhere; do not make them the implicit owner of all pages or behavior.
+- After assigning surfaces, simulate the tasks in listed order. For each task, inspect its purpose, owned surfaces, traceability items, and proof, then identify every schema, interface, route, service, fixture, and earlier task output it needs.
+- Require every prerequisite to exist in the baseline or be delivered by the same task or an earlier task. When the task itself introduces a prerequisite, name that artifact in `Owned surfaces` and cover it in the task proof. A surface first delivered by a later task is a forward dependency even when eventual ownership and traceability are complete.
+- Resolve each forward dependency by moving the foundation to the earliest consumer, defining an explicit stable early contract plus a later additive extension, reordering the tasks, or blocking the affected task. Do not leave the decision for implementation-time clarification.
 - Resolve every unmapped or ambiguously owned surface before completion, or mark tasks `Blocked` when the gap prevents active implementation.
+- Keep every task's stable `Task <n>` label unchanged. Add exactly one `Depends on:` line naming earlier task labels or `none`, and update it whenever task order or prerequisites change. Treat this declaration as navigation and validator input, not as a substitute for the semantic sequence simulation.
 - Keep every acceptance criterion's `[AC-<n>]` ID stable across edits: assign the next unused integer to a new criterion and never renumber or reuse a retired one. Give each new `## Data and Access Boundaries` entity a backticked-name bullet.
 - Update the affected tasks' `Owns:` lines and the implementation boundary's deferred or release classifications whenever a criterion or entity is added, removed, reclassified, or reassigned. Keep every active criterion owned by exactly one task, every active entity by at least one, and every deferred or release item classified without an active owner. `validate_spec.py` enforces this coverage once the spec uses `[AC-<n>]` IDs; re-run it after the change.
 
@@ -94,4 +98,4 @@ Activate this skill as the workflow for restoring agreement between requirements
 
 ## Completion
 
-Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required delivery surface has one clear owning task, stale questions and blockers are removed, `tasks.md` remains a concise representation of the current executable state, available mechanical checks pass, and implementation state is accurate.
+Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required delivery surface has one clear owning task, the tasks are executable in their listed order without forward dependencies, stale questions and blockers are removed, `tasks.md` remains a concise representation of the current executable state, available mechanical checks pass, and implementation state is accurate.

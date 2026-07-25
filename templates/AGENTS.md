@@ -29,10 +29,12 @@ Execute the canonical `SKILL.md` instead of imitating it. When one request combi
 - Persist accepted decisions, blockers, progress, proof results, and review checkpoints through the matching SDD workflow.
 - Do not mark a slice `Verified` while a required established check is failing or unavailable without an explicit accepted exception.
 
-## Traceability
+## Task Planning And Traceability
 
 - Give every acceptance criterion a stable `[AC-<n>]` ID.
 - Define every data entity as a backticked-name bullet under `## Data and Access Boundaries`.
+- Give every task a stable `Task <n>` label and exactly one `Depends on:` line naming earlier tasks or `none`.
+- Simulate tasks in listed order before approval. Resolve every schema, interface, route, service, fixture, or earlier output first owned by a later task.
 - Give every task one `Owned surfaces` field and exactly one `Owns:` line.
 - Assign every active criterion to exactly one task and every active data entity to at least one task.
 - Classify criteria and entities outside the active slice as deferred or release coverage; do not also assign them to an active task.
