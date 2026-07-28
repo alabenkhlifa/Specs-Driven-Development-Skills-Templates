@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the mechanical structure of one SDD feature specification."""
+"""Validate one SDD specification or the complete cross-spec capability graph."""
 
 from __future__ import annotations
 
@@ -67,6 +67,19 @@ TRACEABILITY_CLASS_RE = re.compile(
     r"^- (Deferred|Release) (criteria|entities):\s*(.+)$",
     re.IGNORECASE,
 )
+CAPABILITY_HEADING = "## Cross-Specification Dependencies"
+CAPABILITY_SLUG_PATTERN = r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+CAPABILITY_NAME_PATTERN = rf"capability:{CAPABILITY_SLUG_PATTERN}"
+SPEC_REFERENCE_PATTERN = rf"specs/{CAPABILITY_SLUG_PATTERN}"
+CAPABILITY_REQUIREMENT_RE = re.compile(
+    rf"^- `(?P<name>{CAPABILITY_NAME_PATTERN})` — "
+    rf"provider `(?P<provider>{SPEC_REFERENCE_PATTERN})#(?P<provider_task>Task \d+)` — "
+    r"required before `(?P<consumer_task>Task \d+)`\.$"
+)
+CAPABILITY_PROVIDER_RE = re.compile(
+    rf"^- `(?P<name>{CAPABILITY_NAME_PATTERN})` — ready after `(?P<task>Task \d+)`\.$"
+)
+TASK_RECORD_RE = re.compile(r"^- \[([ xX])\]\s+(.+)$")
 
 
 def section_body(text: str, heading: str) -> str:
@@ -284,6 +297,358 @@ def validate_task_dependencies(spec_dir: Path, contents: dict[str, str]) -> list
     return errors
 
 
+def collect_task_records(tasks_body: str) -> tuple[list[str], dict[str, dict[str, object]]]:
+    """Collect task order, completion state, and the full task block."""
+    order: list[str] = []
+    records: dict[str, dict[str, object]] = {}
+    current_label: str | None = None
+    current_lines: list[str] = []
+
+    def save_current() -> None:
+        if current_label is not None and current_label not in records:
+            records[current_label] = {
+                "complete": current_lines[0].startswith("- [x] ")
+                or current_lines[0].startswith("- [X] "),
+                "body": "\n".join(current_lines),
+            }
+
+    for line in tasks_body.splitlines():
+        heading = TASK_RECORD_RE.match(line)
+        if heading:
+            save_current()
+            label = re.split(r"\s[—-]\s", heading.group(2), maxsplit=1)[0].strip()
+            current_label = label
+            current_lines = [line]
+            order.append(label)
+        elif current_label is not None:
+            current_lines.append(line)
+
+    save_current()
+    return order, records
+
+
+def parse_capability_dependencies(
+    spec_dir: Path, tasks_text: str
+) -> tuple[bool, list[dict[str, str]], list[dict[str, str]], list[str]]:
+    """Parse the opt-in task-level cross-specification capability contract."""
+    tasks_path = spec_dir / "tasks.md"
+    if CAPABILITY_HEADING not in tasks_text:
+        return False, [], [], []
+
+    errors: list[str] = []
+    active_index = tasks_text.find("## Active Slice")
+    capability_index = tasks_text.find(CAPABILITY_HEADING)
+    boundary_index = tasks_text.find("## Implementation Boundary")
+    if not (active_index < capability_index < boundary_index):
+        errors.append(
+            f"{tasks_path}: {CAPABILITY_HEADING} must appear after "
+            "## Active Slice and before ## Implementation Boundary"
+        )
+
+    body = section_body(tasks_text, CAPABILITY_HEADING)
+    requirements: list[dict[str, str]] = []
+    providers: list[dict[str, str]] = []
+    modes_seen: list[str] = []
+    none_seen: set[str] = set()
+    mode: str | None = None
+
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped in {"Requires:", "Provides:"}:
+            mode = stripped[:-1].lower()
+            modes_seen.append(mode)
+            continue
+        if not stripped.startswith("- "):
+            errors.append(f"{tasks_path}: unexpected capability line {stripped!r}")
+            continue
+        if mode is None:
+            errors.append(f"{tasks_path}: capability entry appears before Requires or Provides")
+            continue
+        if stripped == "- None.":
+            none_seen.add(mode)
+            continue
+
+        match = (
+            CAPABILITY_REQUIREMENT_RE.fullmatch(stripped)
+            if mode == "requires"
+            else CAPABILITY_PROVIDER_RE.fullmatch(stripped)
+        )
+        if match is None:
+            expected = (
+                "`capability:<name>` — provider `specs/<feature>#Task <n>` — "
+                "required before `Task <n>`."
+                if mode == "requires"
+                else "`capability:<name>` — ready after `Task <n>`."
+            )
+            errors.append(
+                f"{tasks_path}: malformed {mode} entry {stripped!r}; expected {expected}"
+            )
+            continue
+        if mode == "requires":
+            requirements.append(match.groupdict())
+        else:
+            providers.append({"name": match.group("name"), "task": match.group("task")})
+
+    for required_mode in ("requires", "provides"):
+        count = modes_seen.count(required_mode)
+        if count == 0:
+            errors.append(f"{tasks_path}: capability section is missing {required_mode.title()}:")
+        elif count > 1:
+            errors.append(
+                f"{tasks_path}: capability section has multiple {required_mode.title()}: labels"
+            )
+
+    if "requires" in none_seen and requirements:
+        errors.append(f"{tasks_path}: Requires cannot mix None with capability entries")
+    if "provides" in none_seen and providers:
+        errors.append(f"{tasks_path}: Provides cannot mix None with capability entries")
+    if "requires" not in none_seen and not requirements:
+        errors.append(f"{tasks_path}: Requires must declare a capability or None")
+    if "provides" not in none_seen and not providers:
+        errors.append(f"{tasks_path}: Provides must declare a capability or None")
+
+    requirement_names: set[str] = set()
+    for requirement in requirements:
+        name = requirement["name"]
+        if name in requirement_names:
+            errors.append(f"{tasks_path}: duplicate required capability {name}")
+        requirement_names.add(name)
+
+    provider_names: set[str] = set()
+    for provider in providers:
+        name = provider["name"]
+        if name in provider_names:
+            errors.append(f"{tasks_path}: duplicate provided capability {name}")
+        provider_names.add(name)
+
+    _, task_records = collect_task_records(section_body(tasks_text, "## Tasks"))
+    for requirement in requirements:
+        consumer_task = requirement["consumer_task"]
+        if consumer_task not in task_records:
+            errors.append(
+                f"{tasks_path}: required capability {requirement['name']} references "
+                f"unknown consumer task {consumer_task}"
+            )
+    for provider in providers:
+        task = provider["task"]
+        if task not in task_records:
+            errors.append(
+                f"{tasks_path}: provided capability {provider['name']} references "
+                f"unknown provider task {task}"
+            )
+            continue
+        task_body = str(task_records[task]["body"])
+        owned_surfaces = next(
+            (
+                line
+                for line in task_body.splitlines()
+                if line.strip().startswith("- Owned surfaces:")
+            ),
+            "",
+        )
+        if provider["name"] not in owned_surfaces:
+            errors.append(
+                f"{tasks_path}: {task} must name provided capability "
+                f"{provider['name']} in its owned surfaces"
+            )
+
+    return True, requirements, providers, errors
+
+
+def validate_capability_dependencies(
+    spec_dir: Path, contents: dict[str, str]
+) -> list[str]:
+    """Validate one specification's capability syntax and local task ownership."""
+    _, _, _, errors = parse_capability_dependencies(spec_dir, contents["tasks.md"])
+    return errors
+
+
+def spec_reference(spec_dir: Path) -> str:
+    return f"specs/{spec_dir.name}"
+
+
+def task_status(tasks_text: str) -> str:
+    lines = section_body(tasks_text, "## Status").splitlines()
+    return lines[0].strip() if lines else ""
+
+
+def capability_cycle(edges: dict[str, set[str]]) -> list[str] | None:
+    """Return one cycle in provider-to-consumer order, if present."""
+    visiting: set[str] = set()
+    visited: set[str] = set()
+    stack: list[str] = []
+
+    def visit(node: str) -> list[str] | None:
+        if node in visiting:
+            index = stack.index(node)
+            return stack[index:] + [node]
+        if node in visited:
+            return None
+
+        visiting.add(node)
+        stack.append(node)
+        for neighbor in sorted(edges.get(node, set())):
+            found = visit(neighbor)
+            if found is not None:
+                return found
+        stack.pop()
+        visiting.remove(node)
+        visited.add(node)
+        return None
+
+    for node in sorted(edges):
+        found = visit(node)
+        if found is not None:
+            return found
+    return None
+
+
+def validate_capability_graph(
+    specs_root: Path, all_contents: dict[Path, dict[str, str]]
+) -> list[str]:
+    """Resolve capability providers, readiness, and cycles across specifications."""
+    errors: list[str] = []
+    parsed: dict[Path, dict[str, object]] = {}
+    provider_index: dict[str, list[tuple[Path, str]]] = {}
+
+    for spec_dir, contents in all_contents.items():
+        adopted, requirements, providers, parse_errors = parse_capability_dependencies(
+            spec_dir, contents["tasks.md"]
+        )
+        if not adopted or parse_errors:
+            continue
+        order, records = collect_task_records(
+            section_body(contents["tasks.md"], "## Tasks")
+        )
+        parsed[spec_dir] = {
+            "requirements": requirements,
+            "providers": providers,
+            "order": order,
+            "records": records,
+            "status": task_status(contents["tasks.md"]),
+            "progress": section_body(contents["tasks.md"], "## Progress Log"),
+        }
+        for provider in providers:
+            provider_index.setdefault(provider["name"], []).append(
+                (spec_dir, provider["task"])
+            )
+
+    for name, owners in sorted(provider_index.items()):
+        if len(owners) > 1:
+            rendered = ", ".join(
+                f"{spec_reference(spec_dir)}#{task}" for spec_dir, task in owners
+            )
+            errors.append(
+                f"{specs_root}: capability {name} has multiple providers: {rendered}"
+            )
+
+    for spec_dir, contract in parsed.items():
+        records = contract["records"]
+        progress = str(contract["progress"])
+        for provider in contract["providers"]:
+            provider_task = provider["task"]
+            provider_record = records.get(provider_task)
+            if (
+                provider_record is not None
+                and bool(provider_record["complete"])
+                and provider["name"] not in progress
+            ):
+                errors.append(
+                    f"{spec_dir / 'tasks.md'}: completed provider {provider_task} "
+                    f"must record readiness for {provider['name']} in the Progress Log"
+                )
+
+    edges: dict[str, set[str]] = {}
+    for spec_dir, contract in parsed.items():
+        consumer_ref = spec_reference(spec_dir)
+        records = contract["records"]
+        order = contract["order"]
+        first_incomplete = next(
+            (
+                label
+                for label in order
+                if label in records and not bool(records[label]["complete"])
+            ),
+            None,
+        )
+
+        for requirement in contract["requirements"]:
+            name = requirement["name"]
+            owners = provider_index.get(name, [])
+            if not owners:
+                errors.append(
+                    f"{spec_dir / 'tasks.md'}: required capability {name} "
+                    "has no declared provider"
+                )
+                continue
+            if len(owners) > 1:
+                continue
+
+            provider_spec, provider_task = owners[0]
+            expected_ref = requirement["provider"]
+            expected_task = requirement["provider_task"]
+            actual_ref = spec_reference(provider_spec)
+            if expected_ref != actual_ref or expected_task != provider_task:
+                errors.append(
+                    f"{spec_dir / 'tasks.md'}: required capability {name} names "
+                    f"{expected_ref}#{expected_task}, but its provider is "
+                    f"{actual_ref}#{provider_task}"
+                )
+                continue
+            if provider_spec == spec_dir:
+                errors.append(
+                    f"{spec_dir / 'tasks.md'}: capability {name} is a self-dependency; "
+                    "use the task Depends on contract instead"
+                )
+                continue
+
+            provider_contract = parsed.get(provider_spec)
+            if provider_contract is None:
+                continue
+            provider_records = provider_contract["records"]
+            provider_record = provider_records.get(provider_task)
+            consumer_task = requirement["consumer_task"]
+            consumer_record = records.get(consumer_task)
+            if provider_record is None or consumer_record is None:
+                continue
+
+            provider_complete = bool(provider_record["complete"])
+            consumer_complete = bool(consumer_record["complete"])
+            if not provider_complete and consumer_complete:
+                errors.append(
+                    f"{spec_dir / 'tasks.md'}: completed consumer {consumer_task} "
+                    f"requires unavailable {name} from {actual_ref}#{provider_task}"
+                )
+            if (
+                not provider_complete
+                and "Status: In Progress" in str(consumer_record["body"])
+            ):
+                errors.append(
+                    f"{spec_dir / 'tasks.md'}: {consumer_task} cannot be In Progress "
+                    f"while {name} is unavailable"
+                )
+            if not provider_complete and first_incomplete == consumer_task:
+                if contract["status"] != "Blocked":
+                    errors.append(
+                        f"{spec_dir / 'tasks.md'}: next task {consumer_task} requires "
+                        f"unavailable {name}; slice status must be Blocked"
+                    )
+
+            edges.setdefault(actual_ref, set()).add(consumer_ref)
+            edges.setdefault(consumer_ref, set())
+
+    cycle = capability_cycle(edges)
+    if cycle is not None:
+        errors.append(
+            f"{specs_root}: cross-specification capability cycle: "
+            + " -> ".join(cycle)
+        )
+
+    return errors
+
+
 def collect_traceability_classes(
     boundary_body: str,
 ) -> tuple[dict[str, list[str]], list[tuple[str, str]]]:
@@ -424,16 +789,10 @@ def validate_traceability(spec_dir: Path, contents: dict[str, str]) -> list[str]
     return errors
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("spec_dir", type=Path, help="Directory containing requirements.md, design.md, and tasks.md")
-    args = parser.parse_args()
-    spec_dir = args.spec_dir
-
-    if not spec_dir.is_dir():
-        print(f"Spec validation failed: {spec_dir} is not a directory", file=sys.stderr)
-        return 1
-
+def validate_spec_directory(
+    spec_dir: Path,
+) -> tuple[dict[str, str], list[str]]:
+    """Load and validate one specification directory."""
     errors: list[str] = []
     contents: dict[str, str] = {}
     for filename, headings in REQUIRED_FILES.items():
@@ -448,6 +807,77 @@ def main() -> int:
         errors.extend(validate_cross_file(spec_dir, contents))
         errors.extend(validate_task_dependencies(spec_dir, contents))
         errors.extend(validate_traceability(spec_dir, contents))
+        errors.extend(validate_capability_dependencies(spec_dir, contents))
+
+    return contents, errors
+
+
+def validate_all_specs(specs_root: Path) -> tuple[int, list[str]]:
+    """Validate every specification plus the adopted capability graph."""
+    spec_dirs = sorted(
+        path
+        for path in specs_root.iterdir()
+        if path.is_dir() and any((path / filename).exists() for filename in REQUIRED_FILES)
+    )
+    if not spec_dirs:
+        return 0, [f"{specs_root}: no specification directories found"]
+
+    errors: list[str] = []
+    all_contents: dict[Path, dict[str, str]] = {}
+    for spec_dir in spec_dirs:
+        contents, spec_errors = validate_spec_directory(spec_dir)
+        errors.extend(spec_errors)
+        if len(contents) == len(REQUIRED_FILES):
+            all_contents[spec_dir] = contents
+    errors.extend(validate_capability_graph(specs_root, all_contents))
+    return len(spec_dirs), errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "spec_dir",
+        nargs="?",
+        type=Path,
+        help="Directory containing requirements.md, design.md, and tasks.md",
+    )
+    parser.add_argument(
+        "--all",
+        dest="specs_root",
+        type=Path,
+        help="Validate every specification and the capability graph under this directory",
+    )
+    args = parser.parse_args()
+
+    if (args.spec_dir is None) == (args.specs_root is None):
+        parser.error("provide one spec_dir or --all SPECS_ROOT")
+
+    if args.specs_root is not None:
+        specs_root = args.specs_root
+        if not specs_root.is_dir():
+            print(
+                f"Spec graph validation failed: {specs_root} is not a directory",
+                file=sys.stderr,
+            )
+            return 1
+        count, errors = validate_all_specs(specs_root)
+        if errors:
+            print(f"Spec graph validation failed: {specs_root}", file=sys.stderr)
+            for error in errors:
+                print(f"- {error}", file=sys.stderr)
+            return 1
+        print(
+            f"Spec graph validation passed: {count} specifications under {specs_root}"
+        )
+        return 0
+
+    spec_dir = args.spec_dir
+    assert spec_dir is not None
+    if not spec_dir.is_dir():
+        print(f"Spec validation failed: {spec_dir} is not a directory", file=sys.stderr)
+        return 1
+
+    _, errors = validate_spec_directory(spec_dir)
 
     if errors:
         print(f"Spec validation failed: {spec_dir}", file=sys.stderr)

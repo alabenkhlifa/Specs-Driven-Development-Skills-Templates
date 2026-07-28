@@ -30,7 +30,7 @@ Specification changes stop before implementation. Review reports and routes find
 ├── templates/               Project instructions and feature-spec templates
 ├── examples/                Completed training-request specification
 └── scripts/
-    ├── validate_spec.py     Mechanical validation for one specification
+    ├── validate_spec.py     Per-spec and cross-specification graph validation
     ├── test_validate_spec.py
     └── validate_repo.py     Repository consistency checks
 ```
@@ -55,15 +55,18 @@ The templates make the active slice recoverable without re-reading the full conv
 - Requirements give every acceptance criterion a stable ID such as `[AC-01]`.
 - Design defines each data entity with a bullet such as ``- `TrainingRequest`: ...``.
 - Tasks use stable `Task <n>` labels and exactly one `Depends on:` line that names earlier tasks or `none`.
+- Cross-specification dependencies name the smallest required capability, its provider task, and the consumer task that first needs it.
+- Every capability has one provider task, and that task owns the capability's readiness write-back.
 - `Owned surfaces` maps concrete UI, API, domain, persistence, integration, privacy, security, and operational surfaces to one primary implementation task.
 - Every task has exactly one `Owns:` line. Active criteria have exactly one task owner, and active data entities have at least one.
 - Criteria and entities outside the active slice are classified as deferred or release coverage in the implementation boundary. An item cannot be both task-owned and classified.
 - Before approval, the specification workflow simulates the tasks in listed order. Every required schema, interface, route, service, fixture, or earlier result must already exist, belong to the same task, or come from an earlier dependency. A later-owned prerequisite is resolved in the specification instead of becoming an implementation-time question.
 
-Run the specification validator after every agreement or task-boundary change. It checks the task dependency structure and traceability declarations; the semantic sequence simulation remains part of the specification workflow:
+Run the individual validator after every agreement or task-boundary change, and run the graph validator after a capability edge changes. The checks cover task dependencies, traceability, capability syntax, provider resolution, readiness, active-consumer blocking, and cycles; semantic contract conflicts and sequence simulation remain part of the specification workflow:
 
 ```bash
 python3 .agents/scripts/validate_spec.py specs/<feature>
+python3 .agents/scripts/validate_spec.py --all specs
 ```
 
 ## Use with Codex
@@ -98,10 +101,11 @@ Never mark a slice `Verified` while a required established check is failing or u
 
 ```bash
 python3 scripts/test_validate_spec.py
+python3 scripts/validate_spec.py --all examples
 python3 scripts/validate_repo.py
 ```
 
-The repository validator checks required files, skill metadata, skill-command synchronization, Claude adapters and links, duplicated templates, unresolved example placeholders, the completed example specification, and instruction-file synchronization.
+The repository validator checks required files, skill metadata, skill-command synchronization, Claude adapters and links, duplicated templates, unresolved example placeholders, the completed example specification graph, and instruction-file synchronization.
 
 ## Example
 

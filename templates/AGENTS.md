@@ -21,6 +21,18 @@ Use the matching installed skill whenever the user's intent triggers it:
 
 Execute the canonical `SKILL.md` instead of imitating it. When one request combines a new or changed specification with implementation, complete the specification workflow and stop. Begin implementation only after the agreement and active slice are approved.
 
+## Cross-Specification Capabilities
+
+- Treat slice numbers as identifiers, not execution order.
+- Give every new or changed `tasks.md` a `## Cross-Specification Dependencies` section after `## Active Slice`, with `Requires:` and `Provides:` lists.
+- Declare a requirement as ``- `capability:<name>` — provider `specs/<feature>#Task <n>` — required before `Task <n>`.`` Declare a provider as ``- `capability:<name>` — ready after `Task <n>`.`` Use `- None.` for an empty list.
+- Give each capability one primary provider task and name its readiness write-back in that task's `Owned surfaces`.
+- Depend on the smallest stable capability instead of an entire slice. Do not redefine the provider's schema, interface, authoritative data, or lifecycle in a consumer.
+- A capability is available only after its provider task, proof, and readiness write-back are complete.
+- Keep the earliest affected consumer task blocked while its capability is unavailable. Keep the slice blocked only when its next executable task is blocked.
+- Update provider and consumer specifications together when a capability edge changes.
+- Run `python3 .agents/scripts/validate_spec.py --all specs` after dependency changes.
+
 ## Readiness And Write-Back
 
 - Report product-requirement, technical-design, implementation, verification, and release readiness separately.

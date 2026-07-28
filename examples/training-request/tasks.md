@@ -8,6 +8,16 @@ Not Started
 
 Allow a colleague to submit a training request and make the submitted request available to its owner and Office Management without exposing it to another colleague.
 
+## Cross-Specification Dependencies
+
+Requires:
+
+- None.
+
+Provides:
+
+- None.
+
 ## Implementation Boundary
 
 Included:

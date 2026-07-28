@@ -8,6 +8,16 @@ Not Started | In Progress | Blocked | Verified
 
 <The working behavior this task file is expected to deliver>
 
+## Cross-Specification Dependencies
+
+Requires:
+
+- `capability:<name>` — provider `specs/<feature>#Task <n>` — required before `Task <n>`.
+
+Provides:
+
+- `capability:<name>` — ready after `Task <n>`.
+
 ## Implementation Boundary
 
 Included:

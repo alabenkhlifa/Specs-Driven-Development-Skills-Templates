@@ -26,12 +26,12 @@ Activate this skill as the workflow for creating one feature specification witho
 9. Stop discovery once there is enough agreement to write a useful `Draft`. Record remaining decisions under `Open Questions` instead of extending the conversation indefinitely.
 10. Define the bounded feature in `requirements.md` and `design.md`, then limit `tasks.md` to the first end-to-end executable slice. Record required later behavior as deferred after the active slice, not as part of its implementation boundary.
 11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
-12. Run the Delivery Coverage and Sequence Gate before completing the task plan.
+12. Run the Cross-Specification Capability Gate, then the Delivery Coverage and Sequence Gate, before completing the task plan.
 13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
 14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
-15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` only while a decision prevents active implementation or required verification. Never present incomplete release gates as release-ready.
-16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` when the project validator exists, then manually confirm that requirements, design, tasks, proof, scope classification, delivery coverage, and task sequence agree.
-17. Report the scope classification, delivery-coverage and sequence result including any unmapped, ambiguous, or forward-dependent surfaces, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
+15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` while an unavailable required capability, decision, or design gap prevents active implementation or required verification. Never present incomplete release gates as release-ready.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof, scope classification, capability ownership, delivery coverage, and task sequence agree.
+17. Report the scope classification, capability graph result, delivery-coverage and sequence result including any missing provider, cycle, unmapped, ambiguous, or forward-dependent surface, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -57,6 +57,16 @@ Activate this skill as the workflow for creating one feature specification witho
 - Treat unusual growth in acceptance criteria, design decisions, components, or tasks compared with neighboring specifications as a review signal, not an automatic failure or numeric limit.
 - When shared behavior needs an umbrella specification, keep only cross-slice rules, dependencies, and release coordination there. Create child specifications for independently executable outcomes, and do not duplicate their implementation tasks in the umbrella.
 - Before writing or approving, classify the result as `focused specification`, `umbrella with child specifications`, or `split required`, and record the rationale in the report. Resolve `split required` before implementation begins.
+
+## Cross-Specification Capability Gate
+
+- Treat slice numbers as identifiers, not execution order.
+- Add `## Cross-Specification Dependencies` after `## Active Slice` with `Requires:` and `Provides:` lists.
+- Declare a requirement as ``- `capability:<name>` — provider `specs/<feature>#Task <n>` — required before `Task <n>`.`` Declare a provider as ``- `capability:<name>` — ready after `Task <n>`.`` Use `- None.` for an empty list.
+- Give each capability one primary provider task. Depend on the smallest stable capability instead of a whole slice when possible.
+- Inspect every named provider and consumer contract. Reject missing or ambiguous providers, malformed task references, cycles, and consumers that redefine the provider's schema, interface, authoritative data, or lifecycle.
+- Keep the earliest affected task `Blocked` while a required provider task is incomplete. Keep the slice `Blocked` only when its next executable task is blocked; later unavailable capabilities do not block independent earlier tasks. A capability is ready only after the named provider task, its proof, and its readiness write-back are complete.
+- Run the repository's global dependency validator when available. When an edge changes, update provider and consumer specifications together.
 
 ## Delivery Coverage And Sequence Gate
 
@@ -99,4 +109,4 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Completion
 
-Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required delivery surface has one clear owning task, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.
+Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required capability has one provider, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.

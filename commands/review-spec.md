@@ -9,7 +9,7 @@ Activate this skill to review an implemented slice against its specification as 
 
 ## Preconditions
 
-- Confirm the target `specs/<feature>/` exists, then identify the active slice, its task dependencies, its task-owned acceptance criteria and data entities, its deferred and release classifications, and the tasks it claims complete.
+- Confirm the target `specs/<feature>/` exists, then identify the active slice, its cross-specification capabilities, task dependencies, task-owned acceptance criteria and data entities, deferred and release classifications, and tasks it claims complete.
 - Prefer running as a different agent than the one that implemented the slice. Self-review is allowed but must apply the same evidence standard.
 - Confirm the canonical project checks are available. When a required proof cannot run in this environment, report it as unverified rather than assume it passes.
 - Inspect the working tree first. Treat existing uncommitted changes as intentional work from the user or another agent and do not modify or revert them.
@@ -17,20 +17,21 @@ Activate this skill to review an implemented slice against its specification as 
 ## Workflow
 
 1. Read the applicable `AGENTS.md` and all three specification files for the target slice.
-2. Establish the contract under review: the active-slice boundary, each task's purpose, `Depends on:` prerequisites, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
-3. Inspect the actual implementation for every task claimed complete: code, tests, migrations, configuration, and generated assets. Map each task-owned acceptance criterion, data entity, and owned surface to the code that satisfies it, and confirm the task did not silently pull forward a surface first owned by a later task.
-4. Verify by re-running evidence, not by trusting claims: re-run each completed task's attached proof and the verification-gate commands. Record the exact command, its result, and any environment-only gaps.
-5. Assess every Review Dimension below and collect findings.
-6. Classify and report findings by severity, each mapped to its acceptance criterion, task, or owned surface, with `file:line` and one recommended action and route.
-7. Route, do not resolve: send implementation defects back to the implementer or to `implement-spec`, and send agreement changes to `update-spec`. Do not edit application code, tests, or the specification's agreement to make the review pass.
-8. Write back the outcome: append a dated `Review checkpoint` to the target `tasks.md` progress log with the verdict, the re-run evidence, and required follow-ups, and record genuine blockers under `Blocked Decisions`. Do not flip task checkboxes or the slice status; the owning workflow or the user acts on the findings.
-9. Report the verdict, the re-run evidence, the findings by severity, and product, implementation, verification, and release readiness separately.
+2. Establish the contract under review: the active-slice boundary; required and provided capabilities with their provider and consumer tasks; each task's purpose, `Depends on:` prerequisites, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
+3. Run the global dependency validator when available and inspect every required provider task and proof. Report a missing, ambiguous, cyclic, unavailable, or consumer-redefined capability as a blocker rather than treating downstream code as self-contained.
+4. Inspect the actual implementation for every task claimed complete: code, tests, migrations, configuration, and generated assets. Map each task-owned acceptance criterion, data entity, and owned surface to the code that satisfies it, and confirm the task did not silently pull forward a surface first owned by a later task or redefine an external capability.
+5. Verify by re-running evidence, not by trusting claims: re-run each completed task's attached proof and the verification-gate commands. Record the exact command, its result, and any environment-only gaps.
+6. Assess every Review Dimension below and collect findings.
+7. Classify and report findings by severity, each mapped to its capability, acceptance criterion, task, or owned surface, with `file:line` and one recommended action and route.
+8. Route, do not resolve: send implementation defects back to the implementer or to `implement-spec`, and send agreement changes to `update-spec`. Do not edit application code, tests, or the specification's agreement to make the review pass.
+9. Write back the outcome: append a dated `Review checkpoint` to the target `tasks.md` progress log with the verdict, the re-run evidence, and required follow-ups, and record genuine blockers under `Blocked Decisions`. Do not flip task checkboxes or the slice status; the owning workflow or the user acts on the findings.
+10. Report the verdict, the re-run evidence, the findings by severity, and product, implementation, verification, and release readiness separately.
 
 ## Review Dimensions
 
 - Correctness: the implementation does what the requirements and design specify, including the failure behavior and edge cases the spec names.
-- Completeness: every task-owned acceptance criterion, data entity, and owned surface for the reviewed tasks is implemented and proved; nothing claimed complete is partial, and deferred or release coverage is not misreported as active work.
-- Scope adherence: nothing is built outside the active-slice boundary, nothing inside the boundary was silently skipped or deferred without record, and each completed task was executable from the baseline plus its declared earlier dependencies without pulling forward a later-owned surface.
+- Completeness: every required capability, task-owned acceptance criterion, data entity, and owned surface for the reviewed tasks is available, implemented, and proved; nothing claimed complete is partial, and deferred or release coverage is not misreported as active work.
+- Scope adherence: nothing is built outside the active-slice boundary, nothing inside the boundary was silently skipped or deferred without record, each external capability retains one provider, and each completed task was executable from the baseline plus its declared capabilities and earlier dependencies without pulling forward or redefining a later-owned surface.
 - Proof and gate integrity: each completed task's proof and the verification gate actually reproduce; claimed-passing checks are not stale, skipped, weakened, or falsely reported.
 - Privacy and security: schemas, logs, caches, backups, exports, workers, and processors honor the GDPR data contract, minimization, retention, least privilege, secret isolation, and the no-analytics rule.
 - Spec-to-code drift: the code, acceptance criteria, and existing system agree; where they disagree, the disagreement is reported, not silently reconciled.

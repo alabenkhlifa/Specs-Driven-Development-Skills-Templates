@@ -25,10 +25,10 @@ Activate this skill as the workflow for restoring agreement between requirements
    - `tasks.md`: active-slice boundary, implementation steps, proof, verification gate, active blockers, release gates, deferred work, and progress state when it materially changes.
 10. Remove or replace resolved questions, stale blockers, contradicted wording, and invalid proof. Consolidate obsolete or repetitive discovery checkpoints after confirming their durable decisions live in the current requirements, design, and task state. Preserve a replaced tradeoff by recording the new choice and consequence.
 11. Keep technologies deferred when the decision is still product-level. Add technical consequences as open questions instead of selecting a stack implicitly.
-12. Run the Delivery Coverage and Sequence Gate whenever requirements, design, or the active task plan changes.
+12. Run the Cross-Specification Capability Gate and the Delivery Coverage and Sequence Gate whenever requirements, design, dependencies, or the active task plan changes.
 13. Set status by the affected stage. Move requirements to `Draft` when the product agreement becomes incomplete, move tasks to `Blocked` only when active implementation or required verification cannot proceed, and remove `Verified` whenever existing proof no longer covers the changed behavior. Keep deployment-only unknowns in an explicit release gate without representing the work as releasable.
-14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` once after applying the batch when the project validator exists, then manually confirm that every changed decision, proof, scope classification, delivery-coverage mapping, and task dependency agrees across files.
-15. Report the scope classification, delivery-coverage and sequence result including any unmapped, ambiguous, or forward-dependent surfaces, changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
+14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator once after applying the batch when available, then manually confirm that every changed decision, capability edge, proof, scope classification, delivery-coverage mapping, and task dependency agrees across files.
+15. Report the scope classification, capability graph result, delivery-coverage and sequence result including any missing provider, cycle, unmapped, ambiguous, or forward-dependent surface, changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -49,6 +49,16 @@ Activate this skill as the workflow for restoring agreement between requirements
 - Treat unusual growth in acceptance criteria, design decisions, components, or tasks compared with neighboring specifications as a review signal. Counts trigger inspection; they are not hard limits.
 - If an existing specification has become an umbrella, retain only its shared rules, dependencies, completed history, and release coordination. Use `update-spec` to narrow its active boundary, then use `add-spec` for each unfinished independently executable child. Do not duplicate tasks or rewrite verified history.
 - Classify the result as `focused specification`, `umbrella with child specifications`, or `split required`. A `split required` result blocks new implementation until the unfinished work has a focused active slice.
+
+## Cross-Specification Capability Gate
+
+- Treat slice numbers as identifiers, not execution order.
+- Require `## Cross-Specification Dependencies` after `## Active Slice` in every new or changed `tasks.md`, with `Requires:` and `Provides:` lists.
+- Declare a requirement as ``- `capability:<name>` — provider `specs/<feature>#Task <n>` — required before `Task <n>`.`` Declare a provider as ``- `capability:<name>` — ready after `Task <n>`.`` Use `- None.` for an empty list.
+- Give each capability one primary provider task and depend on the smallest stable capability instead of a whole slice when possible.
+- Inspect provider and consumer contracts together. Reject missing or ambiguous providers, malformed task references, cycles, and consumers that redefine the provider's schema, interface, authoritative data, or lifecycle.
+- A capability is ready only after the named provider task, its complete proof, and its readiness write-back are complete. Keep the earliest affected consumer task `Blocked`; keep the slice `Blocked` only when its next executable task is blocked, so a later unavailable capability does not stop independent earlier work.
+- Update both provider and consumer specifications in the same capability-edge change and run the global dependency validator when available.
 
 ## Delivery Coverage And Sequence Gate
 
@@ -98,4 +108,4 @@ Activate this skill as the workflow for restoring agreement between requirements
 
 ## Completion
 
-Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required delivery surface has one clear owning task, the tasks are executable in their listed order without forward dependencies, stale questions and blockers are removed, `tasks.md` remains a concise representation of the current executable state, available mechanical checks pass, and implementation state is accurate.
+Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required capability has one provider, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, stale questions and blockers are removed, `tasks.md` remains a concise representation of the current executable state, available mechanical checks pass, and implementation state is accurate.

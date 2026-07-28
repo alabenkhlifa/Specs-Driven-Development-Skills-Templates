@@ -132,8 +132,8 @@ def main() -> int:
     )
 
     run_check(errors, "scripts/test_validate_spec.py")
-    if (ROOT / "examples" / "training-request").is_dir():
-        run_check(errors, "scripts/validate_spec.py", "examples/training-request")
+    if (ROOT / "examples").is_dir():
+        run_check(errors, "scripts/validate_spec.py", "--all", "examples")
 
     if errors:
         print("Validation failed:")
