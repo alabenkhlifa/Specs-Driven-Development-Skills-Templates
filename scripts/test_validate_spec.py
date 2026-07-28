@@ -265,6 +265,21 @@ class TaskDependencyValidationTests(unittest.TestCase):
     def test_accepts_backward_dependencies(self) -> None:
         self.assertEqual([], self.errors())
 
+    def test_accepts_listed_dependency_order_with_stable_nonnumeric_labels(self) -> None:
+        tasks = """\
+## Tasks
+
+- [ ] Task 8 — Establish a newly split foundation.
+  - Depends on: none
+
+- [ ] Task 2 — Deliver the existing workflow.
+  - Depends on: Task 8
+
+- [ ] Task 9 — Verify the refined integration.
+  - Depends on: Task 2
+"""
+        self.assertEqual([], self.errors(tasks))
+
     def test_requires_one_dependency_line_per_task_after_opt_in(self) -> None:
         tasks = DEPENDENCY_TASKS.replace("  - Depends on: Task 1\n", "", 1)
         self.assertTrue(any("Task 2 is missing a Depends on line" in error for error in self.errors(tasks)))
@@ -430,6 +445,35 @@ class CapabilityGraphValidationTests(unittest.TestCase):
         )
         consumer = self.consumer(status="Not Started")
         self.assertEqual([], self.errors(provider, consumer))
+
+    def test_unavailable_later_consumer_does_not_block_ready_earlier_task(self) -> None:
+        tasks = """\
+- [ ] Task 7 — Establish a provider-independent foundation.
+  - Owned surfaces: Local protocol foundation.
+  - Owns: none (foundation only).
+  - Depends on: none
+  - Proof: The local foundation passes.
+
+- [ ] Task 1 — Consume the provider contract.
+  - Status: Blocked
+  - Owned surfaces: Consumer behavior.
+  - Owns: none (consumer contract only).
+  - Depends on: Task 7
+  - Proof: The consumer contract passes.
+"""
+        consumer = Path("specs/consumer"), {
+            "tasks.md": capability_tasks(
+                status="Not Started",
+                requires=requires(
+                    self.capability,
+                    "specs/provider",
+                    consumer_task=1,
+                ),
+                provides="- None.",
+                tasks=tasks,
+            )
+        }
+        self.assertEqual([], self.errors(self.provider(), consumer))
 
     def test_rejects_missing_provider(self) -> None:
         self.assertTrue(

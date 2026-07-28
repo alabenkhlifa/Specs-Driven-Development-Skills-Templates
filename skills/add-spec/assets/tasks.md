@@ -22,6 +22,8 @@ Provides:
 
 - Standard tasks deliver one independently provable outcome, normally in one task-boundary commit, with focused proof.
 - Exceptions are allowed only when splitting an atomic migration, transaction, or invariant would create an invalid intermediate state.
+- Split distinct adapters, delivery channels, authorization boundaries, lifecycle clocks, and independently failing proofs.
+- List tasks by executable dependency order. Keep existing labels stable and give refined tasks the next unused labels instead of renumbering.
 
 ## Implementation Boundary
 
