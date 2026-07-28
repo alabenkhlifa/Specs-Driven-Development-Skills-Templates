@@ -33,6 +33,17 @@ Execute the canonical `SKILL.md` instead of imitating it. When one request combi
 - Update provider and consumer specifications together when a capability edge changes.
 - Run `python3 .agents/scripts/validate_spec.py --all specs` after dependency changes.
 
+## Task Size Gate
+
+- Give every new or refined `tasks.md` a `## Task Size Gate` section after `## Cross-Specification Dependencies` and before `## Implementation Boundary`.
+- Give each task exactly one size declaration: `Size: Standard` or `Size: Exception — <why splitting creates an invalid intermediate state>.`
+- A standard task delivers one independently provable outcome, owns one primary state transition or invariant and normally one adapter or workflow, produces one task-boundary implementation commit, owns at most three acceptance criteria and two entities, and has focused proof expected to run in about ten minutes.
+- Use 30–45 minutes as a planning target, not a promise. Expected work beyond 60 minutes or more than one meaningful implementation commit is a split signal.
+- Split tasks that combine independently testable behaviors, multiple adapter integrations, domain foundation plus UI plus authentication or recovery, source-owned integration from another specification, or proof modalities that can fail independently.
+- Keep full repository, production, security, and browser-matrix gates at slice verification. Use focused task proof and directly applicable safety checks unless the task owns a broader gate.
+- Allow an exception only when splitting an atomic migration, transaction, or invariant would create a concrete invalid intermediate state. Complexity, convenience, chronology, or test duration is not an exception.
+- Preserve completed task labels and history. When splitting unfinished work, update affected dependencies and capability references together and re-run the individual and global validators.
+
 ## Readiness And Write-Back
 
 - Report product-requirement, technical-design, implementation, verification, and release readiness separately.

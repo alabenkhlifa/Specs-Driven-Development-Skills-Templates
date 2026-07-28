@@ -19,7 +19,7 @@ The four supported workflows are `add-spec`, `update-spec`, `implement-spec`, an
 - Inspect the working tree before editing and preserve unrelated changes.
 - Preserve tool-neutral workflow rules unless a file is explicitly an adapter.
 - Do not add private URLs, credentials, customer names, or internal project details.
-- Do not weaken scope, ownership, traceability, proof, or verification gates to make a workflow appear complete.
+- Do not weaken scope, task-size, ownership, traceability, proof, or verification gates to make a workflow appear complete.
 - Keep the example small and anonymized.
 
 ## Verification

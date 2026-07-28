@@ -26,12 +26,12 @@ Activate this skill as the workflow for creating one feature specification witho
 9. Stop discovery once there is enough agreement to write a useful `Draft`. Record remaining decisions under `Open Questions` instead of extending the conversation indefinitely.
 10. Define the bounded feature in `requirements.md` and `design.md`, then limit `tasks.md` to the first end-to-end executable slice. Record required later behavior as deferred after the active slice, not as part of its implementation boundary.
 11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
-12. Run the Cross-Specification Capability Gate, then the Delivery Coverage and Sequence Gate, before completing the task plan.
+12. Run the Cross-Specification Capability Gate, Task Size Gate, then the Delivery Coverage and Sequence Gate before completing the task plan.
 13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
 14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
 15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` while an unavailable required capability, decision, or design gap prevents active implementation or required verification. Never present incomplete release gates as release-ready.
-16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof, scope classification, capability ownership, delivery coverage, and task sequence agree.
-17. Report the scope classification, capability graph result, delivery-coverage and sequence result including any missing provider, cycle, unmapped, ambiguous, or forward-dependent surface, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof, scope classification, capability ownership, task size, delivery coverage, and task sequence agree.
+17. Report the scope classification, capability graph result, task-size result and exceptions, delivery-coverage and sequence result including any missing provider, cycle, oversized task, unmapped, ambiguous, or forward-dependent surface, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -67,6 +67,16 @@ Activate this skill as the workflow for creating one feature specification witho
 - Inspect every named provider and consumer contract. Reject missing or ambiguous providers, malformed task references, cycles, and consumers that redefine the provider's schema, interface, authoritative data, or lifecycle.
 - Keep the earliest affected task `Blocked` while a required provider task is incomplete. Keep the slice `Blocked` only when its next executable task is blocked; later unavailable capabilities do not block independent earlier tasks. A capability is ready only after the named provider task, its proof, and its readiness write-back are complete.
 - Run the repository's global dependency validator when available. When an edge changes, update provider and consumer specifications together.
+
+## Task Size Gate
+
+- Add `## Task Size Gate` after `## Cross-Specification Dependencies` and before `## Implementation Boundary`. Give every task exactly one `Size:` line: `Size: Standard` or `Size: Exception — <why splitting creates an invalid intermediate state>.`
+- A standard task delivers one independently provable outcome, owns one primary state transition or invariant and normally one adapter or workflow, produces one task-boundary implementation commit, owns at most three acceptance criteria and two entities, and has focused proof expected to run in about ten minutes.
+- Use 30–45 minutes as a planning target, not a promise. Treat expected work beyond 60 minutes or more than one meaningful implementation commit as a split signal.
+- Split when a task combines independently testable behaviors, multiple adapter integrations, domain foundation plus UI plus authentication or recovery, source-owned integration from another specification, or several proof modalities that can fail independently.
+- Keep full repository, production, security, and browser-matrix gates at slice verification. Attach only focused proof and directly applicable safety checks to an implementation task unless that task specifically owns the broader gate.
+- Allow an exception only when splitting an atomic migration, transaction, or invariant would create an invalid intermediate state. Complexity, convenience, or a long test suite is not an exception. Record the concrete invalid state in the task's `Size:` line.
+- Do not split by technical layer when doing so would leave an unusable or unprovable intermediate result. Prefer the smallest coherent vertical or invariant-preserving unit.
 
 ## Delivery Coverage And Sequence Gate
 
@@ -109,4 +119,4 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Completion
 
-Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required capability has one provider, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.
+Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required capability has one provider, every task passes the Task Size Gate or records a justified atomic exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.

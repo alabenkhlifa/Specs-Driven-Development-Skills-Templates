@@ -157,6 +157,61 @@ def provides(capability: str, task: int = 1) -> str:
     return f"- `{capability}` — ready after `Task {task}`."
 
 
+def task_size_document(tasks: str, *, gate_after_boundary: bool = False) -> str:
+    gate = """\
+## Task Size Gate
+
+- Standard tasks deliver one independently provable outcome in one task-boundary commit.
+- Exceptions are allowed only when splitting creates an invalid intermediate state.
+"""
+    boundary = """\
+## Implementation Boundary
+
+- The example task-size contract.
+"""
+    ordered_sections = (
+        f"{boundary}\n{gate}" if gate_after_boundary else f"{gate}\n{boundary}"
+    )
+    return f"""\
+# Example Tasks
+
+## Status
+
+Not Started
+
+## Active Slice
+
+Deliver the example.
+
+## Cross-Specification Dependencies
+
+Requires:
+
+- None.
+
+Provides:
+
+- None.
+
+{ordered_sections}
+## Tasks
+
+{tasks}
+
+## Verification Gate
+
+- [ ] The example proof passes.
+
+## Blocked Decisions
+
+- None.
+
+## Progress Log
+
+- Implementation has not started.
+"""
+
+
 class TraceabilityValidationTests(unittest.TestCase):
     def errors(self, boundary: str = BOUNDARY, tasks: str = TASKS) -> list[str]:
         contents = {
@@ -469,6 +524,81 @@ class CapabilityGraphValidationTests(unittest.TestCase):
                 "cross-specification capability cycle" in error
                 for error in self.errors(first, second)
             )
+        )
+
+
+class TaskSizeValidationTests(unittest.TestCase):
+    def errors(self, tasks: str) -> list[str]:
+        return validate_spec.validate_task_size_gate(
+            Path("specs/example"),
+            {"tasks.md": tasks},
+        )
+
+    def standard_task(self, owns: str = "AC-01, entity:Example") -> str:
+        return f"""\
+- [ ] Task 1 — Deliver one outcome.
+  - Size: Standard
+  - Owned surfaces: One coherent behavior.
+  - Owns: {owns}
+  - Depends on: none
+  - Proof: The focused proof passes.
+"""
+
+    def test_legacy_spec_without_gate_remains_valid(self) -> None:
+        self.assertEqual([], self.errors("# Tasks\n\n## Tasks\n\n" + self.standard_task()))
+
+    def test_accepts_standard_task_within_mechanical_limits(self) -> None:
+        self.assertEqual([], self.errors(task_size_document(self.standard_task())))
+
+    def test_requires_gate_before_implementation_boundary(self) -> None:
+        errors = self.errors(
+            task_size_document(self.standard_task(), gate_after_boundary=True)
+        )
+        self.assertTrue(any("must appear after" in error for error in errors))
+
+    def test_requires_one_size_line_per_task(self) -> None:
+        tasks = self.standard_task().replace("  - Size: Standard\n", "")
+        self.assertTrue(
+            any("Task 1 is missing a Size line" in error for error in self.errors(task_size_document(tasks)))
+        )
+
+    def test_rejects_multiple_size_lines(self) -> None:
+        tasks = self.standard_task().replace(
+            "  - Size: Standard\n",
+            "  - Size: Standard\n  - Size: Standard\n",
+        )
+        self.assertTrue(
+            any("Task 1 has multiple Size lines" in error for error in self.errors(task_size_document(tasks)))
+        )
+
+    def test_standard_task_owns_at_most_three_acceptance_criteria(self) -> None:
+        tasks = self.standard_task("AC-01, AC-02, AC-03, AC-04")
+        self.assertTrue(
+            any("owns 4 acceptance criteria" in error for error in self.errors(task_size_document(tasks)))
+        )
+
+    def test_standard_task_owns_at_most_two_entities(self) -> None:
+        tasks = self.standard_task("entity:First, entity:Second, entity:Third")
+        self.assertTrue(
+            any("owns 3 entities" in error for error in self.errors(task_size_document(tasks)))
+        )
+
+    def test_accepts_justified_atomic_exception(self) -> None:
+        tasks = self.standard_task(
+            "AC-01, AC-02, AC-03, AC-04, entity:First, entity:Second, entity:Third"
+        ).replace(
+            "  - Size: Standard",
+            "  - Size: Exception — Splitting the migration from its backfill would expose records without a valid owner.",
+        )
+        self.assertEqual([], self.errors(task_size_document(tasks)))
+
+    def test_rejects_unexplained_exception(self) -> None:
+        tasks = self.standard_task().replace(
+            "  - Size: Standard",
+            "  - Size: Exception — Cannot be split.",
+        )
+        self.assertTrue(
+            any("must explain the invalid intermediate state" in error for error in self.errors(task_size_document(tasks)))
         )
 
 

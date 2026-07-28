@@ -57,12 +57,14 @@ The templates make the active slice recoverable without re-reading the full conv
 - Tasks use stable `Task <n>` labels and exactly one `Depends on:` line that names earlier tasks or `none`.
 - Cross-specification dependencies name the smallest required capability, its provider task, and the consumer task that first needs it.
 - Every capability has one provider task, and that task owns the capability's readiness write-back.
+- Every new or refined task declares `Size: Standard` or a justified atomic exception.
+- A standard task targets one independently provable outcome and one task-boundary implementation commit, with no more than three acceptance criteria and two entities.
 - `Owned surfaces` maps concrete UI, API, domain, persistence, integration, privacy, security, and operational surfaces to one primary implementation task.
 - Every task has exactly one `Owns:` line. Active criteria have exactly one task owner, and active data entities have at least one.
 - Criteria and entities outside the active slice are classified as deferred or release coverage in the implementation boundary. An item cannot be both task-owned and classified.
 - Before approval, the specification workflow simulates the tasks in listed order. Every required schema, interface, route, service, fixture, or earlier result must already exist, belong to the same task, or come from an earlier dependency. A later-owned prerequisite is resolved in the specification instead of becoming an implementation-time question.
 
-Run the individual validator after every agreement or task-boundary change, and run the graph validator after a capability edge changes. The checks cover task dependencies, traceability, capability syntax, provider resolution, readiness, active-consumer blocking, and cycles; semantic contract conflicts and sequence simulation remain part of the specification workflow:
+Run the individual validator after every agreement or task-boundary change, and run the graph validator after a capability edge changes. The checks cover task dependencies, traceability, task-size declarations and ownership limits, capability syntax, provider resolution, readiness, active-consumer blocking, and cycles; semantic task cohesion, contract conflicts, and sequence simulation remain part of the specification workflow:
 
 ```bash
 python3 .agents/scripts/validate_spec.py specs/<feature>

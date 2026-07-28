@@ -80,6 +80,9 @@ CAPABILITY_PROVIDER_RE = re.compile(
     rf"^- `(?P<name>{CAPABILITY_NAME_PATTERN})` — ready after `(?P<task>Task \d+)`\.$"
 )
 TASK_RECORD_RE = re.compile(r"^- \[([ xX])\]\s+(.+)$")
+TASK_SIZE_HEADING = "## Task Size Gate"
+TASK_SIZE_LINE_RE = re.compile(r"^\s*- Size:\s*(.+)$")
+TASK_SIZE_EXCEPTION_RE = re.compile(r"^Exception — (?P<reason>.+)\.$")
 
 
 def section_body(text: str, heading: str) -> str:
@@ -325,6 +328,109 @@ def collect_task_records(tasks_body: str) -> tuple[list[str], dict[str, dict[str
 
     save_current()
     return order, records
+
+
+def task_ownership_counts(task_body: str) -> tuple[int, int]:
+    """Count acceptance criteria and entities owned by one task."""
+    acceptance_criteria: set[str] = set()
+    entities: set[str] = set()
+    for line in task_body.splitlines():
+        owns = OWNS_LINE_RE.match(line)
+        if owns is None:
+            continue
+        for raw in owns.group(1).split(","):
+            token = raw.strip()
+            if token.startswith("AC-") and OWNS_TOKEN_RE.fullmatch(token):
+                acceptance_criteria.add(token)
+            elif token.startswith("entity:") and OWNS_TOKEN_RE.fullmatch(token):
+                entities.add(token)
+    return len(acceptance_criteria), len(entities)
+
+
+def validate_task_size_gate(spec_dir: Path, contents: dict[str, str]) -> list[str]:
+    """Validate the opt-in task-size declaration and mechanical ownership limits."""
+    tasks_text = contents["tasks.md"]
+    tasks_path = spec_dir / "tasks.md"
+    if TASK_SIZE_HEADING not in tasks_text:
+        return []
+
+    errors: list[str] = []
+    previous_heading = (
+        CAPABILITY_HEADING
+        if CAPABILITY_HEADING in tasks_text
+        else "## Active Slice"
+    )
+    previous_index = tasks_text.find(previous_heading)
+    size_index = tasks_text.find(TASK_SIZE_HEADING)
+    boundary_index = tasks_text.find("## Implementation Boundary")
+    if not (previous_index < size_index < boundary_index):
+        errors.append(
+            f"{tasks_path}: {TASK_SIZE_HEADING} must appear after "
+            f"{previous_heading} and before ## Implementation Boundary"
+        )
+
+    if len(meaningful_bullets(section_body(tasks_text, TASK_SIZE_HEADING))) < 2:
+        errors.append(
+            f"{tasks_path}: {TASK_SIZE_HEADING} must define the standard task "
+            "and exception rules"
+        )
+
+    _, task_records = collect_task_records(section_body(tasks_text, "## Tasks"))
+    for task, record in task_records.items():
+        task_body = str(record["body"])
+        declarations = [
+            match.group(1).strip()
+            for line in task_body.splitlines()
+            if (match := TASK_SIZE_LINE_RE.match(line)) is not None
+        ]
+        if not declarations:
+            errors.append(f"{tasks_path}: {task} is missing a Size line")
+            continue
+        if len(declarations) > 1:
+            errors.append(f"{tasks_path}: {task} has multiple Size lines")
+            continue
+
+        declaration = declarations[0]
+        if declaration == "Standard":
+            criteria_count, entity_count = task_ownership_counts(task_body)
+            if criteria_count > 3:
+                errors.append(
+                    f"{tasks_path}: {task} owns {criteria_count} acceptance criteria; "
+                    "split it or record a justified Size exception"
+                )
+            if entity_count > 2:
+                errors.append(
+                    f"{tasks_path}: {task} owns {entity_count} entities; "
+                    "split it or record a justified Size exception"
+                )
+            continue
+
+        exception = TASK_SIZE_EXCEPTION_RE.fullmatch(declaration)
+        if exception is None:
+            errors.append(
+                f"{tasks_path}: {task} Size must be 'Standard' or "
+                "'Exception — <why splitting creates an invalid intermediate state>.'"
+            )
+            continue
+
+        reason = exception.group("reason").strip()
+        if (
+            len(reason) < 30
+            or re.search(r"<[^>\n]+>", reason)
+            or reason.lower()
+            in {
+                "cannot be split",
+                "task is complex",
+                "too much work",
+                "implementation convenience",
+            }
+        ):
+            errors.append(
+                f"{tasks_path}: {task} Size exception must explain the invalid "
+                "intermediate state created by splitting"
+            )
+
+    return errors
 
 
 def parse_capability_dependencies(
@@ -808,6 +914,7 @@ def validate_spec_directory(
         errors.extend(validate_task_dependencies(spec_dir, contents))
         errors.extend(validate_traceability(spec_dir, contents))
         errors.extend(validate_capability_dependencies(spec_dir, contents))
+        errors.extend(validate_task_size_gate(spec_dir, contents))
 
     return contents, errors
 

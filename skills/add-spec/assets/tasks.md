@@ -18,6 +18,11 @@ Provides:
 
 - `capability:<name>` — ready after `Task <n>`.
 
+## Task Size Gate
+
+- Standard tasks deliver one independently provable outcome, normally in one task-boundary commit, with focused proof.
+- Exceptions are allowed only when splitting an atomic migration, transaction, or invariant would create an invalid intermediate state.
+
 ## Implementation Boundary
 
 Included:
@@ -47,6 +52,7 @@ Traceability:
 ## Tasks
 
 - [ ] Task 1 — <First implementation step>
+  - Size: Standard | Exception — <Why splitting would create an invalid intermediate state>.
   - Depends on: none
   - Purpose: <Why this step is needed>
   - Owned surfaces: <UI, API, domain, persistence, integration, security or privacy, and operational surfaces for which this task is the primary owner>
@@ -54,6 +60,7 @@ Traceability:
   - Proof: <Check that shows this step works>
 
 - [ ] Task 2 — <Next implementation step>
+  - Size: Standard | Exception — <Why splitting would create an invalid intermediate state>.
   - Depends on: Task 1
   - Purpose: <Why this step is needed>
   - Owned surfaces: <Surfaces for which this task is the primary owner>
