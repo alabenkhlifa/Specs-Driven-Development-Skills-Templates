@@ -23,6 +23,8 @@ REQUIRED_FILES = [
     "templates/feature-spec/tasks.md",
     "scripts/validate_spec.py",
     "scripts/test_validate_spec.py",
+    "scripts/run_proof.py",
+    "scripts/test_run_proof.py",
     "commands/add-spec.md",
     "commands/update-spec.md",
     "commands/implement-spec.md",
@@ -132,6 +134,7 @@ def main() -> int:
     )
 
     run_check(errors, "scripts/test_validate_spec.py")
+    run_check(errors, "scripts/test_run_proof.py")
     if (ROOT / "examples").is_dir():
         run_check(errors, "scripts/validate_spec.py", "--all", "examples")
 

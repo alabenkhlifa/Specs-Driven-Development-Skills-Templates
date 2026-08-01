@@ -80,9 +80,25 @@ CAPABILITY_PROVIDER_RE = re.compile(
     rf"^- `(?P<name>{CAPABILITY_NAME_PATTERN})` — ready after `(?P<task>Task \d+)`\.$"
 )
 TASK_RECORD_RE = re.compile(r"^- \[([ xX])\]\s+(.+)$")
+SLICE_SIZE_HEADING = "## Slice Size Gate"
+SLICE_SIZE_LINE_RE = re.compile(r"^- Slice size:\s*(.*)$")
+SLICE_SIZE_EXCEPTION_RE = re.compile(r"^Exception — (?P<reason>.+)\.$")
 TASK_SIZE_HEADING = "## Task Size Gate"
 TASK_SIZE_LINE_RE = re.compile(r"^\s*- Size:\s*(.+)$")
 TASK_SIZE_EXCEPTION_RE = re.compile(r"^Exception — (?P<reason>.+)\.$")
+PROOF_SCOPE_HEADING = "## Proof Scope Gate"
+PROOF_APPLIES_LINE_RE = re.compile(r"^- Applies to:\s*(.+)$")
+PROOF_SCOPE_LINE_RE = re.compile(r"^\s*- Proof scope:\s*(.*)$")
+PROOF_SCOPE_BROAD_RE = re.compile(r"^Broad — (?P<reason>.+)\.$")
+PROOF_RECEIPT_RE = re.compile(
+    r"^- Proof receipt: `(?P<task>Task \d+)` — "
+    r"scope `(?P<scope>Focused|Broad)` — "
+    r"command `(?P<command>[^`\n]+)` — exit `0`\.$"
+)
+SLICE_PROOF_RECEIPT_RE = re.compile(
+    r"^- Proof receipt: slice — scope `Broad` — "
+    r"command `(?P<command>[^`\n]+)` — exit `0`\.$"
+)
 
 
 def section_body(text: str, heading: str) -> str:
@@ -347,6 +363,134 @@ def task_ownership_counts(task_body: str) -> tuple[int, int]:
     return len(acceptance_criteria), len(entities)
 
 
+def valid_dependency_depth(tasks_body: str) -> int | None:
+    """Return the longest valid dependency path, or None for an invalid graph.
+
+    Dependency-shape errors remain owned by validate_task_dependencies so the
+    slice-size gate does not report a second error for the same malformed edge.
+    """
+    tasks, structural_errors = collect_task_dependency_lines(tasks_body)
+    if structural_errors or not tasks:
+        return None
+
+    labels = [label for label, _ in tasks]
+    if any(not TASK_ID_RE.fullmatch(label) for label in labels):
+        return None
+    if len(set(labels)) != len(labels):
+        return None
+
+    positions = {label: position for position, label in enumerate(labels)}
+    depths: dict[str, int] = {}
+    for position, (label, declarations) in enumerate(tasks):
+        if len(declarations) != 1:
+            return None
+
+        content = declarations[0]
+        if content.lower() in {"none", "none."}:
+            dependencies: list[str] = []
+        else:
+            dependencies = [raw.strip() for raw in content.split(",") if raw.strip()]
+            if not dependencies or len(set(dependencies)) != len(dependencies):
+                return None
+            if any(not TASK_ID_RE.fullmatch(dependency) for dependency in dependencies):
+                return None
+            if any(
+                dependency not in positions or positions[dependency] >= position
+                for dependency in dependencies
+            ):
+                return None
+
+        depths[label] = 1 + max(
+            (depths[dependency] for dependency in dependencies),
+            default=0,
+        )
+
+    return max(depths.values())
+
+
+def validate_slice_size_gate(spec_dir: Path, contents: dict[str, str]) -> list[str]:
+    """Validate the optional prospective slice-size declaration and limits."""
+    tasks_text = contents["tasks.md"]
+    tasks_path = spec_dir / "tasks.md"
+    if SLICE_SIZE_HEADING not in tasks_text:
+        return []
+
+    errors: list[str] = []
+    capability_index = tasks_text.find(CAPABILITY_HEADING)
+    slice_size_index = tasks_text.find(SLICE_SIZE_HEADING)
+    task_size_index = tasks_text.find(TASK_SIZE_HEADING)
+    if (
+        capability_index == -1
+        or task_size_index == -1
+        or not (capability_index < slice_size_index < task_size_index)
+    ):
+        errors.append(
+            f"{tasks_path}: {SLICE_SIZE_HEADING} must appear after "
+            f"{CAPABILITY_HEADING} and before {TASK_SIZE_HEADING}"
+        )
+
+    gate_body = section_body(tasks_text, SLICE_SIZE_HEADING)
+    declarations = [
+        match.group(1).strip()
+        for line in gate_body.splitlines()
+        if (match := SLICE_SIZE_LINE_RE.fullmatch(line)) is not None
+    ]
+    if not declarations:
+        errors.append(
+            f"{tasks_path}: {SLICE_SIZE_HEADING} is missing a top-level "
+            "'- Slice size:' declaration"
+        )
+        return errors
+    if len(declarations) > 1:
+        errors.append(
+            f"{tasks_path}: {SLICE_SIZE_HEADING} has multiple top-level "
+            "'- Slice size:' declarations"
+        )
+        return errors
+
+    declaration = declarations[0]
+    if declaration == "Standard":
+        tasks_body = section_body(tasks_text, "## Tasks")
+        tasks, _ = collect_task_dependency_lines(tasks_body)
+        if len(tasks) > 12:
+            errors.append(
+                f"{tasks_path}: Standard slice has {len(tasks)} tasks; "
+                "split it or record a justified Slice size exception"
+            )
+
+        longest_path = valid_dependency_depth(tasks_body)
+        if longest_path is not None and longest_path > 8:
+            errors.append(
+                f"{tasks_path}: Standard slice has a longest dependency path of "
+                f"{longest_path} tasks; split it or record a justified Slice size exception"
+            )
+        return errors
+
+    exception = SLICE_SIZE_EXCEPTION_RE.fullmatch(declaration)
+    if exception is not None:
+        reason = exception.group("reason").strip()
+        if (
+            len(reason) >= 30
+            and not re.search(r"<[^>\n]+>", reason)
+            and reason.lower()
+            not in {
+                "cannot be split",
+                "slice is complex",
+                "too much work",
+                "implementation convenience",
+                "shared release milestone",
+                "one pull request",
+            }
+        ):
+            return errors
+
+    errors.append(
+        f"{tasks_path}: Slice size must be 'Standard' or a justified "
+        "'Exception — <reason>.' that names the invalid boundary created by splitting"
+    )
+    return errors
+
+
 def validate_task_size_gate(spec_dir: Path, contents: dict[str, str]) -> list[str]:
     """Validate the opt-in task-size declaration and mechanical ownership limits."""
     tasks_text = contents["tasks.md"]
@@ -428,6 +572,164 @@ def validate_task_size_gate(spec_dir: Path, contents: dict[str, str]) -> list[st
             errors.append(
                 f"{tasks_path}: {task} Size exception must explain the invalid "
                 "intermediate state created by splitting"
+            )
+
+    return errors
+
+
+def validate_proof_scope_gate(spec_dir: Path, contents: dict[str, str]) -> list[str]:
+    """Validate opt-in task proof scopes and completed-task proof receipts."""
+    tasks_text = contents["tasks.md"]
+    tasks_path = spec_dir / "tasks.md"
+    if PROOF_SCOPE_HEADING not in tasks_text:
+        return []
+
+    errors: list[str] = []
+    size_index = tasks_text.find(TASK_SIZE_HEADING)
+    proof_index = tasks_text.find(PROOF_SCOPE_HEADING)
+    boundary_index = tasks_text.find("## Implementation Boundary")
+    if size_index == -1 or not (size_index < proof_index < boundary_index):
+        errors.append(
+            f"{tasks_path}: {PROOF_SCOPE_HEADING} must appear after "
+            f"{TASK_SIZE_HEADING} and before ## Implementation Boundary"
+        )
+
+    gate_body = section_body(tasks_text, PROOF_SCOPE_HEADING)
+    applies_declarations = [
+        match.group(1).strip()
+        for line in gate_body.splitlines()
+        if (match := PROOF_APPLIES_LINE_RE.fullmatch(line)) is not None
+    ]
+    if not applies_declarations:
+        errors.append(
+            f"{tasks_path}: {PROOF_SCOPE_HEADING} is missing a top-level "
+            "'- Applies to:' declaration"
+        )
+        return errors
+    if len(applies_declarations) > 1:
+        errors.append(
+            f"{tasks_path}: {PROOF_SCOPE_HEADING} has multiple top-level "
+            "'- Applies to:' declarations"
+        )
+        return errors
+
+    task_order, task_records = collect_task_records(section_body(tasks_text, "## Tasks"))
+    applies_value = applies_declarations[0]
+    applicable_tasks: list[str] = []
+    if applies_value == "all tasks.":
+        applicable_tasks = task_order
+        for task in task_order:
+            if not TASK_ID_RE.fullmatch(task):
+                errors.append(
+                    f"{tasks_path}: proof-scope task label {task!r} must be 'Task <n>'"
+                )
+    else:
+        normalized_value = (
+            applies_value[:-1] if applies_value.endswith(".") else applies_value
+        )
+        labels = [label.strip() for label in normalized_value.split(",")]
+        if not labels or any(not label for label in labels):
+            errors.append(
+                f"{tasks_path}: Applies to must be 'all tasks.' or a comma-separated "
+                "list of 'Task <n>' labels"
+            )
+            return errors
+        seen_labels: set[str] = set()
+        for label in labels:
+            if not TASK_ID_RE.fullmatch(label):
+                errors.append(
+                    f"{tasks_path}: Applies to label {label!r} must be 'Task <n>'"
+                )
+                continue
+            if label in seen_labels:
+                errors.append(f"{tasks_path}: Applies to repeats task label {label}")
+                continue
+            seen_labels.add(label)
+            if label not in task_records:
+                errors.append(f"{tasks_path}: Applies to references unknown task {label}")
+                continue
+            applicable_tasks.append(label)
+
+    receipts = [
+        match.groupdict()
+        for line in section_body(tasks_text, "## Progress Log").splitlines()
+        if (match := PROOF_RECEIPT_RE.fullmatch(line.strip())) is not None
+    ]
+
+    for task in applicable_tasks:
+        record = task_records.get(task)
+        if record is None:
+            # Unknown labels are reported while parsing an explicit applicability list.
+            continue
+        declarations = [
+            match.group(1).strip()
+            for line in str(record["body"]).splitlines()
+            if (match := PROOF_SCOPE_LINE_RE.fullmatch(line)) is not None
+        ]
+        if not declarations:
+            errors.append(f"{tasks_path}: {task} is missing a Proof scope line")
+            continue
+        if len(declarations) > 1:
+            errors.append(f"{tasks_path}: {task} has multiple Proof scope lines")
+            continue
+
+        declaration = declarations[0]
+        scope: str | None = None
+        if declaration == "Focused":
+            scope = "Focused"
+        else:
+            broad = PROOF_SCOPE_BROAD_RE.fullmatch(declaration)
+            if broad is not None:
+                reason = broad.group("reason").strip()
+                if reason and not re.search(r"<[^>\n]+>", reason):
+                    scope = "Broad"
+        if scope is None:
+            errors.append(
+                f"{tasks_path}: {task} Proof scope must be 'Focused' or "
+                "'Broad — <specific nonempty reason>.'"
+            )
+            continue
+
+        if bool(record["complete"]) and not any(
+            receipt["task"] == task and receipt["scope"] == scope
+            for receipt in receipts
+        ):
+            errors.append(
+                f"{tasks_path}: completed {task} requires a successful {scope} "
+                "Proof receipt in the Progress Log"
+            )
+
+    status_lines = section_body(tasks_text, "## Status").splitlines()
+    status = status_lines[0].strip() if status_lines else ""
+    if status == "Verified":
+        incomplete_tasks = [
+            task for task, record in task_records.items() if not bool(record["complete"])
+        ]
+        if incomplete_tasks:
+            errors.append(
+                f"{tasks_path}: Verified status requires every task complete; "
+                f"incomplete: {', '.join(incomplete_tasks)}"
+            )
+
+        verification_lines = [
+            line
+            for line in section_body(tasks_text, "## Verification Gate").splitlines()
+            if re.match(r"^- \[[ xX]\] ", line)
+        ]
+        if not verification_lines or any(not line.startswith("- [x]") and not line.startswith("- [X]") for line in verification_lines):
+            errors.append(
+                f"{tasks_path}: Verified status requires every Verification Gate item complete"
+            )
+
+        slice_receipts = [
+            line
+            for line in section_body(tasks_text, "## Progress Log").splitlines()
+            if SLICE_PROOF_RECEIPT_RE.fullmatch(line.strip()) is not None
+        ]
+        if not slice_receipts:
+            errors.append(
+                f"{tasks_path}: Verified status requires a successful slice Proof receipt "
+                "in the Progress Log"
             )
 
     return errors
@@ -914,7 +1216,9 @@ def validate_spec_directory(
         errors.extend(validate_task_dependencies(spec_dir, contents))
         errors.extend(validate_traceability(spec_dir, contents))
         errors.extend(validate_capability_dependencies(spec_dir, contents))
+        errors.extend(validate_slice_size_gate(spec_dir, contents))
         errors.extend(validate_task_size_gate(spec_dir, contents))
+        errors.extend(validate_proof_scope_gate(spec_dir, contents))
 
     return contents, errors
 

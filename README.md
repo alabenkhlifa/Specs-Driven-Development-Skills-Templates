@@ -32,6 +32,8 @@ Specification changes stop before implementation. Review reports and routes find
 └── scripts/
     ├── validate_spec.py     Per-spec and cross-specification graph validation
     ├── test_validate_spec.py
+    ├── run_proof.py         Task- and slice-scoped proof runner
+    ├── test_run_proof.py
     └── validate_repo.py     Repository consistency checks
 ```
 
@@ -41,10 +43,11 @@ The skill folders are canonical. `commands/` contains exact mirrors for tools th
 
 1. Copy `templates/AGENTS.md` to the project root. Also copy it as `CLAUDE.md` when both tools are used, and keep the two files identical.
 2. Copy the four folders under `skills/` into the project's `.agents/skills/`.
-3. Copy `scripts/validate_spec.py` and `scripts/test_validate_spec.py` into `.agents/scripts/`.
+3. Copy `scripts/validate_spec.py`, `scripts/test_validate_spec.py`, `scripts/run_proof.py`, and `scripts/test_run_proof.py` into `.agents/scripts/`.
 4. For Claude Code 2.1.203 or newer, link each `.claude/skills/<name>` folder to `../../.agents/skills/<name>` so Claude and Codex execute the same skill files.
 5. Create `specs/<feature>/` from `templates/feature-spec/` and replace every placeholder.
 6. Configure the real project checks in the root instruction files.
+7. Extend `validate_task_command` and `test_run_proof.py` for the project's test, build, browser, and release commands. Do not treat focused-proof enforcement as ready until the project's broad commands are covered.
 
 The slash-command adapters remain available for projects that use `.claude/commands/`: copy both `commands/` and `.claude/commands/` to the project.
 
@@ -57,8 +60,10 @@ The templates make the active slice recoverable without re-reading the full conv
 - Tasks use stable `Task <n>` labels and exactly one `Depends on:` line that names earlier tasks or `none`.
 - Cross-specification dependencies name the smallest required capability, its provider task, and the consumer task that first needs it.
 - Every capability has one provider task, and that task owns the capability's readiness write-back.
+- A standard slice has one coherent outcome, no more than 12 tasks, and a longest dependency path of no more than 8 tasks.
 - Every new or refined task declares `Size: Standard` or a justified atomic exception.
 - A standard task targets one independently provable outcome and one task-boundary implementation commit, with no more than three acceptance criteria and two entities.
+- Every applicable task declares `Proof scope: Focused` or a justified broad exception.
 - `Owned surfaces` maps concrete UI, API, domain, persistence, integration, privacy, security, and operational surfaces to one primary implementation task.
 - Every task has exactly one `Owns:` line. Active criteria have exactly one task owner, and active data entities have at least one.
 - Criteria and entities outside the active slice are classified as deferred or release coverage in the implementation boundary. An item cannot be both task-owned and classified.
@@ -70,6 +75,15 @@ Run the individual validator after every agreement or task-boundary change, and 
 python3 .agents/scripts/validate_spec.py specs/<feature>
 python3 .agents/scripts/validate_spec.py --all specs
 ```
+
+Run task proof through the task scope and complete verification gates through the slice scope:
+
+```bash
+python3 .agents/scripts/run_proof.py task --task <n> -- <focused-command>
+python3 .agents/scripts/run_proof.py slice -- <complete-gate-command>
+```
+
+Successful runs emit receipts for the specification progress log. The included task guardrails recognize common Mix, package-manager, and browser-test full-suite commands. Extend `validate_task_command` in `run_proof.py` when a project's stack has additional broad commands.
 
 ## Use with Codex
 
@@ -103,11 +117,12 @@ Never mark a slice `Verified` while a required established check is failing or u
 
 ```bash
 python3 scripts/test_validate_spec.py
+python3 scripts/test_run_proof.py
 python3 scripts/validate_spec.py --all examples
 python3 scripts/validate_repo.py
 ```
 
-The repository validator checks required files, skill metadata, skill-command synchronization, Claude adapters and links, duplicated templates, unresolved example placeholders, the completed example specification graph, and instruction-file synchronization.
+The repository validator checks required files, skill metadata, skill-command synchronization, Claude adapters and links, duplicated templates, proof-runner tests, unresolved example placeholders, the completed example specification graph, and instruction-file synchronization.
 
 ## Example
 

@@ -9,7 +9,7 @@ Activate this skill to review an implemented slice against its specification as 
 
 ## Preconditions
 
-- Confirm the target `specs/<feature>/` exists, then identify the active slice, its cross-specification capabilities, adopted task-size contract and exceptions, task dependencies, task-owned acceptance criteria and data entities, deferred and release classifications, and tasks it claims complete.
+- Confirm the target `specs/<feature>/` exists, then identify the active slice, its cross-specification capabilities, adopted slice-size, task-size, and proof-scope contracts and exceptions, task dependencies, task-owned acceptance criteria and data entities, deferred and release classifications, and tasks it claims complete.
 - Prefer running as a different agent than the one that implemented the slice. Self-review is allowed but must apply the same evidence standard.
 - Confirm the canonical project checks are available. When a required proof cannot run in this environment, report it as unverified rather than assume it passes.
 - Inspect the working tree first. Treat existing uncommitted changes as intentional work from the user or another agent and do not modify or revert them.
@@ -17,10 +17,10 @@ Activate this skill to review an implemented slice against its specification as 
 ## Workflow
 
 1. Read the applicable `AGENTS.md` and all three specification files for the target slice.
-2. Establish the contract under review: the active-slice boundary; required and provided capabilities with their provider and consumer tasks; the listed execution order regardless of numeric task labels; the Task Size Gate when adopted; each task's size declaration, purpose, `Depends on:` prerequisites, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
+2. Establish the contract under review: the active-slice boundary; required and provided capabilities with their provider and consumer tasks; the listed execution order regardless of numeric task labels; the Slice Size Gate, Task Size Gate, and Proof Scope Gate when adopted; each task's size and proof-scope declarations, purpose, `Depends on:` prerequisites, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
 3. Run the global dependency validator when available and inspect every required provider task and proof. Report a missing, ambiguous, cyclic, unavailable, or consumer-redefined capability as a blocker rather than treating downstream code as self-contained.
 4. Inspect the actual implementation for every task claimed complete: code, tests, migrations, configuration, generated assets, and task-boundary commits. Map each task-owned acceptance criterion, data entity, and owned surface to the code that satisfies it; confirm the owning task delivered or depended only on earlier delivery of every surface needed to prove each criterion; confirm a standard task did not hide multiple independently useful implementation commits or behaviors; validate every size exception against its claimed invalid intermediate state; and confirm the task did not silently pull forward a surface first owned by a later task or redefine an external capability.
-5. Verify by re-running evidence, not by trusting claims: re-run each completed task's attached proof and the verification-gate commands. Record the exact command, its result, and any environment-only gaps.
+5. Verify by re-running evidence, not by trusting claims. When the Proof Scope Gate is adopted, run each completed task's attached proof through `python3 .agents/scripts/run_proof.py task --task <n> -- <command>`, adding `--broad` before `--` only when the task declares the approved broad exception, and run each complete verification-gate command through `python3 .agents/scripts/run_proof.py slice -- <command>`. Otherwise preserve the same focused-task and final-gate separation manually. Record the exact command, scope, result, and any environment-only gaps.
 6. Assess every Review Dimension below and collect findings.
 7. Classify and report findings by severity, each mapped to its capability, acceptance criterion, task, or owned surface, with `file:line` and one recommended action and route.
 8. Route, do not resolve: send implementation defects back to the implementer or to `implement-spec`, and send agreement changes to `update-spec`. Do not edit application code, tests, or the specification's agreement to make the review pass.
@@ -32,8 +32,9 @@ Activate this skill to review an implemented slice against its specification as 
 - Correctness: the implementation does what the requirements and design specify, including the failure behavior and edge cases the spec names.
 - Completeness: every required capability, task-owned acceptance criterion, data entity, and owned surface for the reviewed tasks is available, implemented, and proved; nothing claimed complete is partial, and deferred or release coverage is not misreported as active work.
 - Scope adherence: nothing is built outside the active-slice boundary, nothing inside the boundary was silently skipped or deferred without record, each external capability retains one provider, and each completed task was executable from the baseline plus its declared capabilities and earlier dependencies without pulling forward or redefining a later-owned surface.
+- Slice granularity: every slice under an adopted Slice Size Gate delivered one coherent end-to-end outcome within its declared task-count and critical-path limits, or its exception identifies the indivisible authority, lifecycle, or verification boundary.
 - Task granularity: every task under an adopted Task Size Gate delivered one independently provable outcome and normally one task-boundary implementation commit; multiple adapters, delivery channels, authorization boundaries, lifecycle clocks, state transitions, recovery paths, or independently failing proofs were split unless an atomic exception identifies the invalid intermediate state.
-- Proof and gate integrity: each completed task's proof and the verification gate actually reproduce; claimed-passing checks are not stale, skipped, weakened, or falsely reported.
+- Proof and gate integrity: each completed task's declared proof scope and receipt reproduce; the verification gate reproduces separately; the task runner covers the project's broad commands; claimed-passing checks are not stale, skipped, broadened during task proof, weakened, or falsely reported.
 - Privacy and security: schemas, logs, caches, backups, exports, workers, and processors honor the GDPR data contract, minimization, retention, least privilege, secret isolation, and the no-analytics rule.
 - Spec-to-code drift: the code, acceptance criteria, and existing system agree; where they disagree, the disagreement is reported, not silently reconciled.
 - Quality and maintainability: boundaries, naming, duplication, and structure are sound; record refactoring that materially reduces risk, and mark optional polish as such.
@@ -59,6 +60,7 @@ Activate this skill to review an implemented slice against its specification as 
 - Do not change requirements, design, acceptance criteria, or task scope to make the implementation pass.
 - Do not mark the slice `Verified`, unblock tasks, or claim release readiness.
 - Do not accept a check as passing without evidence; report unrunnable proofs as unverified.
+- Do not bypass the proof runner when the specification has adopted `## Proof Scope Gate`, and do not use slice scope while reproducing a focused task proof.
 - Keep deployment-only gates as release blockers without treating them as active implementation defects.
 - Do not create new Markdown files unless the user requests them; record the review in the existing `tasks.md`.
 

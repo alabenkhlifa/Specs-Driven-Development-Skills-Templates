@@ -28,6 +28,7 @@ Run:
 
 ```bash
 python3 scripts/test_validate_spec.py
+python3 scripts/test_run_proof.py
 python3 scripts/validate_spec.py --all examples
 python3 scripts/validate_repo.py
 git diff --check

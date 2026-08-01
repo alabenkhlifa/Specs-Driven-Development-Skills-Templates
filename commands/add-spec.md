@@ -26,12 +26,12 @@ Activate this skill as the workflow for creating one feature specification witho
 9. Stop discovery once there is enough agreement to write a useful `Draft`. Record remaining decisions under `Open Questions` instead of extending the conversation indefinitely.
 10. Define the bounded feature in `requirements.md` and `design.md`, then limit `tasks.md` to the first end-to-end executable slice. Record required later behavior as deferred after the active slice, not as part of its implementation boundary.
 11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
-12. Run the Cross-Specification Capability Gate, Task Size Gate, then the Delivery Coverage and Sequence Gate before completing the task plan.
+12. Run the Cross-Specification Capability Gate, Slice Size Gate, Task Size Gate, Task Proof Gate, then the Delivery Coverage and Sequence Gate before completing the task plan.
 13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
 14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
 15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` while an unavailable required capability, decision, or design gap prevents active implementation or required verification. Never present incomplete release gates as release-ready.
-16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof, scope classification, capability ownership, task size, delivery coverage, and task sequence agree.
-17. Report the scope classification, capability graph result, task-size result and exceptions, delivery-coverage and sequence result including any missing provider, cycle, oversized task, unmapped, ambiguous, or forward-dependent surface, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof scope, scope classification, capability ownership, slice size, task size, delivery coverage, and task sequence agree.
+17. Report the scope classification, capability graph result, slice-size, task-size, and proof-scope results and exceptions, delivery-coverage and sequence result including any missing provider, cycle, oversized slice or task, unmapped, ambiguous, or forward-dependent surface, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
 
@@ -68,15 +68,30 @@ Activate this skill as the workflow for creating one feature specification witho
 - Keep the earliest affected task `Blocked` while a required provider task is incomplete. Point each requirement at the earliest task that actually consumes the capability, then derive slice status from the first incomplete task in listed execution order. Keep the slice `Blocked` only when that next executable task is blocked; later unavailable capabilities do not block independent earlier tasks. A capability is ready only after the named provider task, its proof, and its readiness write-back are complete.
 - Run the repository's global dependency validator when available. When an edge changes, update provider and consumer specifications together.
 
+## Slice Size Gate
+
+- Add `## Slice Size Gate` after `## Cross-Specification Dependencies` and before `## Task Size Gate`, with exactly one `Slice size:` declaration.
+- Use `Slice size: Standard` only for one coherent end-to-end outcome with one verification gate, at most 12 tasks total, and a longest `Depends on:` path of at most 8 tasks.
+- Use `Slice size: Exception — <reason>.` only when every smaller boundary would duplicate an authoritative contract or create a concrete invalid lifecycle or verification state. Complexity, convenience, chronology, a shared release milestone, or one pull request is not a reason.
+- Split independently executable outcomes into child specifications and connect them through the smallest stable capabilities. Keep umbrella specifications non-executable except for shared rules and release coordination.
+- Never satisfy this gate by making tasks larger; every task must independently pass the Task Size Gate.
+
 ## Task Size Gate
 
-- Add `## Task Size Gate` after `## Cross-Specification Dependencies` and before `## Implementation Boundary`. Give every task exactly one `Size:` line: `Size: Standard` or `Size: Exception — <why splitting creates an invalid intermediate state>.`
+- Add `## Task Size Gate` after `## Slice Size Gate` and before `## Proof Scope Gate`. Give every task exactly one `Size:` line: `Size: Standard` or `Size: Exception — <why splitting creates an invalid intermediate state>.`
 - A standard task delivers one independently provable outcome, owns one primary state transition or invariant and normally one adapter or workflow, produces one task-boundary implementation commit, owns at most three acceptance criteria and two entities, and has focused proof expected to run in about ten minutes.
 - Use 30–45 minutes as a planning target, not a promise. Treat expected work beyond 60 minutes or more than one meaningful implementation commit as a split signal.
 - Split when a task combines independently testable behaviors, multiple adapter integrations, distinct delivery channels, authorization boundaries, lifecycle clocks, domain foundation plus UI plus authentication or recovery, source-owned integration from another specification, or several proof modalities that can fail independently.
 - Keep full repository, production, security, and browser-matrix gates at slice verification. Attach only focused proof and directly applicable safety checks to an implementation task unless that task specifically owns the broader gate.
 - Allow an exception only when splitting an atomic migration, transaction, or invariant would create an invalid intermediate state. Complexity, convenience, or a long test suite is not an exception. Record the concrete invalid state in the task's `Size:` line.
 - Do not split by technical layer when doing so would leave an unusable or unprovable intermediate result. Prefer the smallest coherent vertical or invariant-preserving unit.
+
+## Task Proof Gate
+
+- Add `## Proof Scope Gate` after `## Task Size Gate` and before `## Implementation Boundary`, with exactly `- Applies to: all tasks.` for a new plan.
+- Give every task exactly one `Proof scope:` line. Use `Focused` by default. Use `Broad — <reason>.` only when the task itself owns a repository-wide, browser-matrix, security, production, or release gate and the ownership cannot be separated.
+- Keep the task's `Proof:` statement focused enough to execute through `python3 .agents/scripts/run_proof.py task --task <n> -- <command>`. Keep complete gates in `## Verification Gate`, where they run through slice scope.
+- Reject a plan that uses broad task proof as general regression confidence, compensates for unclear ownership with a full suite, or would require slice scope during routine task completion.
 
 ## Delivery Coverage And Sequence Gate
 
@@ -120,4 +135,4 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Completion
 
-Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required capability has one provider, every task passes the Task Size Gate or records a justified atomic exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.
+Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required capability has one provider, the slice passes the Slice Size Gate, every task passes the Task Size Gate and Task Proof Gate or records a justified exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.
