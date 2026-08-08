@@ -1,6 +1,6 @@
 ---
 name: review-spec
-description: Independently review the implementation of one Spec-Driven Development slice against its approved requirements.md, design.md, and tasks.md, re-running each completed task's proof and the verification gate, then reporting evidence-based findings and routing fixes without changing the implementation or the agreement. Use when a user asks to review, audit, verify, or second-check a slice another agent implemented, or to check for missed behavior, scope drift, privacy or security gaps, or needed refactoring before the slice is trusted.
+description: Independently review the implementation of one Spec-Driven Development slice against its approved requirements.md, design.md, tasks.md, and progress.md, re-running each completed task's proof and the verification gate, then reporting evidence-based findings and routing fixes without changing the implementation or the agreement. Use when a user asks to review, audit, verify, or second-check a slice another agent implemented, or to check for missed behavior, scope drift, privacy or security gaps, or needed refactoring before the slice is trusted.
 ---
 
 # Review Spec
@@ -16,7 +16,7 @@ Activate this skill to review an implemented slice against its specification as 
 
 ## Workflow
 
-1. Read the applicable `AGENTS.md` and all three specification files for the target slice.
+1. Read the applicable `AGENTS.md` and the target slice's `requirements.md`, `design.md`, and `tasks.md`. Read the relevant task and review entries in `progress.md`; `## Progress Log` in `tasks.md` must contain only `See [progress.md](progress.md).`
 2. Establish the contract under review: the active-slice boundary; required and provided capabilities with their provider and consumer tasks; the listed execution order regardless of numeric task labels; the Slice Size Gate, Task Size Gate, and Proof Scope Gate when adopted; each task's size and proof-scope declarations, purpose, `Depends on:` prerequisites, `Owned surfaces`, `Owns:` traceability items, and proof; the verification gate; and the privacy, security, and no-analytics commitments. Keep deferred criteria and entities outside the implementation verdict, and assess release-classified items only against their release gate.
 3. Run the global dependency validator when available and inspect every required provider task and proof. Report a missing, ambiguous, cyclic, unavailable, or consumer-redefined capability as a blocker rather than treating downstream code as self-contained.
 4. Inspect the actual implementation for every task claimed complete: code, tests, migrations, configuration, generated assets, and task-boundary commits. Map each task-owned acceptance criterion, data entity, and owned surface to the code that satisfies it; confirm the owning task delivered or depended only on earlier delivery of every surface needed to prove each criterion; confirm a standard task did not hide multiple independently useful implementation commits or behaviors; validate every size exception against its claimed invalid intermediate state; and confirm the task did not silently pull forward a surface first owned by a later task or redefine an external capability.
@@ -24,7 +24,7 @@ Activate this skill to review an implemented slice against its specification as 
 6. Assess every Review Dimension below and collect findings.
 7. Classify and report findings by severity, each mapped to its capability, acceptance criterion, task, or owned surface, with `file:line` and one recommended action and route.
 8. Route, do not resolve: send implementation defects back to the implementer or to `implement-spec`, and send agreement changes to `update-spec`. Do not edit application code, tests, or the specification's agreement to make the review pass.
-9. Write back the outcome: append a dated `Review checkpoint` to the target `tasks.md` progress log with the verdict, the re-run evidence, and required follow-ups, and record genuine blockers under `Blocked Decisions`. Do not flip task checkboxes or the slice status; the owning workflow or the user acts on the findings.
+9. Write back the outcome: add a dated newest-first `Review checkpoint` entry to `progress.md` with the verdict, re-run evidence, and required follow-ups, and record genuine blockers under `Blocked Decisions` in `tasks.md`. Do not flip task checkboxes or the slice status; the owning workflow or the user acts on the findings.
 10. Report the verdict, the re-run evidence, the findings by severity, and product, implementation, verification, and release readiness separately.
 
 ## Review Dimensions
@@ -62,8 +62,8 @@ Activate this skill to review an implemented slice against its specification as 
 - Do not accept a check as passing without evidence; report unrunnable proofs as unverified.
 - Do not bypass the proof runner when the specification has adopted `## Proof Scope Gate`, and do not use slice scope while reproducing a focused task proof.
 - Keep deployment-only gates as release blockers without treating them as active implementation defects.
-- Do not create new Markdown files unless the user requests them; record the review in the existing `tasks.md`.
+- Do not create new Markdown files unless the user requests them; record the review in the existing `progress.md` and current blocker state in `tasks.md`.
 
 ## Completion
 
-Finish when every reviewed task and its task-owned acceptance criteria, data entities, and surfaces have been checked against the implementation with re-run evidence, findings are classified and routed, the `Review checkpoint` and any blockers are written to `tasks.md`, and the verdict and separate readiness states are reported.
+Finish when every reviewed task and its task-owned acceptance criteria, data entities, and surfaces have been checked against the implementation with re-run evidence, findings are classified and routed, the `Review checkpoint` is written to `progress.md`, any blockers are written to `tasks.md`, and the verdict and separate readiness states are reported.

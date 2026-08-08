@@ -9,7 +9,7 @@ Activate this skill as the workflow for restoring agreement between requirements
 
 ## Workflow
 
-1. Read the applicable `AGENTS.md` and the feature's `requirements.md`, `design.md`, and `tasks.md`.
+1. Read the applicable `AGENTS.md` and the feature's `requirements.md`, `design.md`, and `tasks.md`. Read only the latest relevant entries from `progress.md`; `## Progress Log` in `tasks.md` must contain only `See [progress.md](progress.md).`
 2. Inspect the code, discovery, or failed check that triggered the update.
 3. Classify the affected decision, such as user, workflow, scope, business rule, identity, ownership, state, acceptance criterion, architecture, task boundary, or proof. Identify the earliest readiness stage it blocks: product requirements, technical design, active-slice implementation, required verification, or deployment and release. Explain the cross-file impact before editing.
 4. Run the Scope Health Gate whenever the update adds or broadens an outcome, workflow, integration, trust boundary, data lifecycle, implementation boundary, or verification gate. Do not append independent work merely because the existing specification is related.
@@ -22,12 +22,13 @@ Activate this skill as the workflow for restoring agreement between requirements
 9. Trace the decision through every affected surface:
    - `requirements.md`: workflow, scope, rules, acceptance criteria, and open questions.
    - `design.md`: logical approach, domain and access boundaries, interfaces, decisions, tradeoffs, risks, and technical questions.
-   - `tasks.md`: active-slice boundary, implementation steps, proof, verification gate, active blockers, release gates, deferred work, and progress state when it materially changes.
+   - `tasks.md`: active-slice boundary, implementation steps, proof, verification gate, active blockers, release gates, deferred work, and task and slice status.
+   - `progress.md`: a newest-first entry only for meaningful implementation movement, verification evidence or invalidation, a status transition, or a consolidated discovery checkpoint.
 10. Remove or replace resolved questions, stale blockers, contradicted wording, and invalid proof. Consolidate obsolete or repetitive discovery checkpoints after confirming their durable decisions live in the current requirements, design, and task state. Preserve a replaced tradeoff by recording the new choice and consequence.
 11. Keep technologies deferred when the decision is still product-level. Add technical consequences as open questions instead of selecting a stack implicitly.
 12. Run the Cross-Specification Capability Gate, Slice Size Gate, Task Size Gate, Task Proof Gate, and Delivery Coverage and Sequence Gate whenever requirements, design, dependencies, proof expectations, or the active task plan changes.
 13. Set status by the affected stage. Move requirements to `Draft` when the product agreement becomes incomplete, move tasks to `Blocked` only when active implementation or required verification cannot proceed, and remove `Verified` whenever existing proof no longer covers the changed behavior. Keep deployment-only unknowns in an explicit release gate without representing the work as releasable.
-14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator once after applying the batch when available, then manually confirm that every changed decision, capability edge, slice-size declaration, task-size declaration, proof-scope declaration, proof, scope classification, delivery-coverage mapping, and task dependency agrees across files.
+14. Run `python3 .agents/scripts/validate_spec.py specs/<feature>`, `python3 .agents/scripts/split_progress_log.py --check`, and the repository's global dependency validator once after applying the batch when available, then manually confirm that every changed decision, capability edge, slice-size declaration, task-size declaration, proof-scope declaration, proof, scope classification, delivery-coverage mapping, and task dependency agrees across files.
 15. Report the scope classification, capability graph result, slice-size, task-size, and proof-scope results and exceptions, delivery-coverage and sequence result including any missing provider, cycle, oversized slice or task, unmapped, ambiguous, or forward-dependent surface, changed decisions, newly exposed questions with their blocked stages, invalidated or deferred work, status changes, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
@@ -110,15 +111,15 @@ Activate this skill as the workflow for restoring agreement between requirements
 - Keep acceptance criteria representative and observable rather than turning them into a complete technical test matrix.
 - Name the earliest blocked stage for every unresolved item. A decision that affects only deployment or release must not block implementation or local verification when their contract is already stable.
 
-## tasks.md State Discipline
+## Specification State Discipline
 
 - Write every accepted decision back immediately, but place the durable decision in the current requirements, design, active boundary, blockers, or proof rather than relying on chronology.
-- Do not append a progress-log entry for every discovery answer or clarification. The progress log is not a conversation transcript and must not duplicate decisions already visible in current-state sections.
+- Do not append a `progress.md` entry for every discovery answer or clarification. The progress journal is not a conversation transcript and must not duplicate decisions already visible in current-state sections.
 - Add or update progress only for meaningful implementation movement, a verification result or invalidation, a specification status transition, or a consolidated discovery checkpoint that materially changes readiness or scope.
 - During an active discovery thread, update one current checkpoint in place or omit a progress entry when the changed current-state sections already provide a complete handoff.
 - Keep `tasks.md` limited to the current executable slice. Put future work in concise deferred boundaries or a separate specification instead of expanding the active task list.
 - Keep deployment-dependent evidence in a release gate when it is not required by the active implementation or verification contract.
-- When repetitive discovery history already exists, consolidate it without removing failed-check evidence, completed implementation history, or decisions that are not represented elsewhere.
+- When repetitive discovery history already exists, consolidate it in `progress.md` without removing failed-check evidence, completed implementation history, or decisions that are not represented elsewhere.
 
 ## Boundaries
 
@@ -134,4 +135,4 @@ Activate this skill as the workflow for restoring agreement between requirements
 
 ## Completion
 
-Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required capability has one provider, every adopted slice passes the Slice Size Gate, every new or refined task passes the Task Size Gate and Task Proof Gate or records a justified exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, stale questions and blockers are removed, `tasks.md` remains a concise representation of the current executable state, available mechanical checks pass, and implementation state is accurate.
+Finish when the scope is classified and healthy, the changed decision and its proof are visible, affected files agree, every required capability has one provider, every adopted slice passes the Slice Size Gate, every new or refined task passes the Task Size Gate and Task Proof Gate or records a justified exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, stale questions and blockers are removed, `tasks.md` remains a concise current-state plan, `progress.md` preserves the necessary evidence history, available mechanical checks pass, and implementation state is accurate.

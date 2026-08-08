@@ -29,6 +29,9 @@ Run:
 ```bash
 python3 scripts/test_validate_spec.py
 python3 scripts/test_run_proof.py
+python3 scripts/test_capability_index.py
+python3 scripts/test_split_progress_log.py
+python3 scripts/split_progress_log.py --check examples
 python3 scripts/validate_spec.py --all examples
 python3 scripts/validate_repo.py
 git diff --check

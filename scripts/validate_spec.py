@@ -39,6 +39,9 @@ REQUIRED_FILES = {
         "## Blocked Decisions",
         "## Progress Log",
     ),
+    # Keep the current task plan compact. The append-only implementation
+    # journal and proof receipts live beside it in progress.md.
+    "progress.md": (),
 }
 
 ALLOWED_STATUSES = {
@@ -99,6 +102,10 @@ SLICE_PROOF_RECEIPT_RE = re.compile(
     r"^- Proof receipt: slice — scope `Broad` — "
     r"command `(?P<command>[^`\n]+)` — exit `0`\.$"
 )
+PROGRESS_HEADING = "## Progress Log"
+PROGRESS_FILENAME = "progress.md"
+PROGRESS_POINTER = "See [progress.md](progress.md)."
+PROGRESS_ENTRY_RE = re.compile(r"^### \S")
 
 
 def section_body(text: str, heading: str) -> str:
@@ -114,6 +121,47 @@ def section_body(text: str, heading: str) -> str:
             break
         body.append(line)
     return "\n".join(body).strip()
+
+
+def progress_log_text(contents: dict[str, str]) -> str:
+    """Return proof and readiness evidence from the separate progress journal.
+
+    Legacy inline entries remain readable during migration so the validator
+    reports the required split without also pretending that evidence vanished.
+    """
+    stored = contents.get(PROGRESS_FILENAME, "")
+    if stored.strip():
+        return stored
+    return section_body(contents.get("tasks.md", ""), PROGRESS_HEADING)
+
+
+def validate_progress_log_split(spec_dir: Path, contents: dict[str, str]) -> list[str]:
+    """Require tasks.md to link to progress.md instead of carrying history."""
+    errors: list[str] = []
+    tasks_path = spec_dir / "tasks.md"
+    tasks_text = contents.get("tasks.md", "")
+    if PROGRESS_HEADING not in tasks_text:
+        return errors
+
+    lines = [
+        line
+        for line in section_body(tasks_text, PROGRESS_HEADING).splitlines()
+        if line.strip()
+    ]
+    if any(PROGRESS_ENTRY_RE.match(line) for line in lines):
+        errors.append(
+            f"{tasks_path}: {PROGRESS_HEADING} still contains inline entries; "
+            "run python3 .agents/scripts/split_progress_log.py to move them "
+            f"into {PROGRESS_FILENAME}"
+        )
+        return errors
+
+    if lines != [PROGRESS_POINTER]:
+        errors.append(
+            f"{tasks_path}: {PROGRESS_HEADING} body must be exactly "
+            f"{PROGRESS_POINTER!r}"
+        )
+    return errors
 
 
 def validate_file(path: Path, headings: tuple[str, ...]) -> list[str]:
@@ -652,7 +700,7 @@ def validate_proof_scope_gate(spec_dir: Path, contents: dict[str, str]) -> list[
 
     receipts = [
         match.groupdict()
-        for line in section_body(tasks_text, "## Progress Log").splitlines()
+        for line in progress_log_text(contents).splitlines()
         if (match := PROOF_RECEIPT_RE.fullmatch(line.strip())) is not None
     ]
 
@@ -696,7 +744,7 @@ def validate_proof_scope_gate(spec_dir: Path, contents: dict[str, str]) -> list[
         ):
             errors.append(
                 f"{tasks_path}: completed {task} requires a successful {scope} "
-                "Proof receipt in the Progress Log"
+                f"Proof receipt in {PROGRESS_FILENAME}"
             )
 
     status_lines = section_body(tasks_text, "## Status").splitlines()
@@ -723,13 +771,13 @@ def validate_proof_scope_gate(spec_dir: Path, contents: dict[str, str]) -> list[
 
         slice_receipts = [
             line
-            for line in section_body(tasks_text, "## Progress Log").splitlines()
+            for line in progress_log_text(contents).splitlines()
             if SLICE_PROOF_RECEIPT_RE.fullmatch(line.strip()) is not None
         ]
         if not slice_receipts:
             errors.append(
                 f"{tasks_path}: Verified status requires a successful slice Proof receipt "
-                "in the Progress Log"
+                f"in {PROGRESS_FILENAME}"
             )
 
     return errors
@@ -936,7 +984,7 @@ def validate_capability_graph(
             "order": order,
             "records": records,
             "status": task_status(contents["tasks.md"]),
-            "progress": section_body(contents["tasks.md"], "## Progress Log"),
+            "progress": progress_log_text(contents),
         }
         for provider in providers:
             provider_index.setdefault(provider["name"], []).append(
@@ -965,7 +1013,7 @@ def validate_capability_graph(
             ):
                 errors.append(
                     f"{spec_dir / 'tasks.md'}: completed provider {provider_task} "
-                    f"must record readiness for {provider['name']} in the Progress Log"
+                    f"must record readiness for {provider['name']} in {PROGRESS_FILENAME}"
                 )
 
     edges: dict[str, set[str]] = {}
@@ -1206,10 +1254,18 @@ def validate_spec_directory(
     for filename, headings in REQUIRED_FILES.items():
         path = spec_dir / filename
         if not path.is_file():
-            errors.append(f"{path}: required file is missing")
+            hint = (
+                "; run python3 .agents/scripts/split_progress_log.py"
+                if filename == PROGRESS_FILENAME
+                else ""
+            )
+            errors.append(f"{path}: required file is missing{hint}")
             continue
         contents[filename] = path.read_text(encoding="utf-8")
         errors.extend(validate_file(path, headings))
+
+    if "tasks.md" in contents:
+        errors.extend(validate_progress_log_split(spec_dir, contents))
 
     if len(contents) == len(REQUIRED_FILES):
         errors.extend(validate_cross_file(spec_dir, contents))

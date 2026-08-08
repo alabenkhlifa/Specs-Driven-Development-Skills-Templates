@@ -1,6 +1,6 @@
 ---
 name: add-spec
-description: Create an initial Spec-Driven Development feature specification by inspecting the project, discovering the real users and workflow, resolving consequential product questions, and writing requirements.md, design.md, and tasks.md without implementing code. Use when a user asks to define, brainstorm, specify, plan, scope, or prepare a new feature or implementation slice, including product discovery before technologies are selected.
+description: Create an initial Spec-Driven Development feature specification by inspecting the project, discovering the real users and workflow, resolving consequential product questions, and writing requirements.md, design.md, tasks.md, and progress.md without implementing code. Use when a user asks to define, brainstorm, specify, plan, scope, or prepare a new feature or implementation slice, including product discovery before technologies are selected.
 ---
 
 # Add Spec
@@ -28,9 +28,9 @@ Activate this skill as the workflow for creating one feature specification witho
 11. Put deployment-dependent decisions and evidence that do not affect implementation or local verification in the release boundary. Keep them visible without marking the active slice `Blocked`.
 12. Run the Cross-Specification Capability Gate, Slice Size Gate, Task Size Gate, Task Proof Gate, then the Delivery Coverage and Sequence Gate before completing the task plan.
 13. For complex work, use Plan mode to produce and approve the proposal. Return to Default mode before writing files.
-14. Copy the bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder.
+14. Copy all four bundled templates from `assets/` into `specs/<feature>/` and replace every placeholder. Keep implementation history and proof receipts as newest-first `### ...` entries in `progress.md`; keep `## Progress Log` in `tasks.md` as the single line `See [progress.md](progress.md).` Replace the bundled progress entry with one concise specification-creation checkpoint, or remove the entry body when no checkpoint is needed; the file itself must exist.
 15. Set status by stage: keep requirements `Draft` while the product agreement is incomplete, and mark tasks `Blocked` while an unavailable required capability, decision, or design gap prevents active implementation or required verification. Never present incomplete release gates as release-ready.
-16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof scope, scope classification, capability ownership, slice size, task size, delivery coverage, and task sequence agree.
+16. Run `python3 .agents/scripts/validate_spec.py specs/<feature>`, `python3 .agents/scripts/split_progress_log.py --check`, and the repository's global dependency validator when available, then manually confirm that requirements, design, tasks, proof scope, scope classification, capability ownership, slice size, task size, delivery coverage, and task sequence agree.
 17. Report the scope classification, capability graph result, slice-size, task-size, and proof-scope results and exceptions, delivery-coverage and sequence result including any missing provider, cycle, oversized slice or task, unmapped, ambiguous, or forward-dependent surface, files created, assumptions, unresolved questions with their blocked stages, active-slice boundary, and product, design, implementation, verification, and release readiness separately.
 
 ## Question Batching Rules
@@ -135,4 +135,4 @@ Activate this skill as the workflow for creating one feature specification witho
 
 ## Completion
 
-Finish when the scope is classified and healthy, all three files exist, agree on the full feature and first active slice, every required capability has one provider, the slice passes the Slice Size Gate, every task passes the Task Size Gate and Task Proof Gate or records a justified exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.
+Finish when the scope is classified and healthy, all four specification files exist, the current-state files agree on the full feature and first active slice, every required capability has one provider, the slice passes the Slice Size Gate, every task passes the Task Size Gate and Task Proof Gate or records a justified exception, every required delivery surface has one clear owning task, the capability graph is acyclic, the tasks are executable in their listed order without forward dependencies, available mechanical checks pass, and the next required decision is visible.

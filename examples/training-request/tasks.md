@@ -114,4 +114,4 @@ None.
 
 ## Progress Log
 
-No implementation sessions yet.
+See [progress.md](progress.md).

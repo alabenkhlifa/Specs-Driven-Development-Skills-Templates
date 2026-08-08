@@ -1005,5 +1005,156 @@ class ProofScopeValidationTests(unittest.TestCase):
         self.assertEqual([], self.errors(document))
 
 
+POINTER = "See [progress.md](progress.md)."
+
+ENTRY = """\
+### 2026-08-04 - Task 1 complete
+
+- Completed: Delivered one outcome.
+"""
+
+
+class ProgressLogSplitValidationTests(unittest.TestCase):
+    def errors(self, progress_body: str) -> list[str]:
+        tasks = f"""\
+# Example Tasks
+
+## Tasks
+
+- [x] Task 1 — Deliver one outcome.
+
+## Progress Log
+
+{progress_body}"""
+        return validate_spec.validate_progress_log_split(
+            Path("specs/example"), {"tasks.md": tasks}
+        )
+
+    def test_accepts_the_pointer_body(self) -> None:
+        self.assertEqual([], self.errors(f"{POINTER}\n"))
+
+    def test_rejects_inline_entries_left_by_a_half_finished_rebase(self) -> None:
+        errors = self.errors(ENTRY)
+        self.assertTrue(any("still contains inline entries" in error for error in errors))
+        self.assertTrue(any("split_progress_log.py" in error for error in errors))
+
+    def test_rejects_inline_entries_below_the_pointer(self) -> None:
+        errors = self.errors(f"{POINTER}\n\n{ENTRY}")
+        self.assertTrue(any("still contains inline entries" in error for error in errors))
+
+    def test_rejects_a_prose_progress_body(self) -> None:
+        errors = self.errors("- Implementation has not started.\n")
+        self.assertTrue(any("body must be exactly" in error for error in errors))
+
+    def test_ignores_a_document_without_a_progress_heading(self) -> None:
+        self.assertEqual(
+            [],
+            validate_spec.validate_progress_log_split(
+                Path("specs/example"),
+                {"tasks.md": "# Example Tasks\n\n## Tasks\n\n- [ ] Task 1 — Deliver.\n"},
+            ),
+        )
+
+
+class StoredProgressLogTests(unittest.TestCase):
+    """Receipts and readiness evidence must resolve from progress.md."""
+
+    def task(self, *, complete: bool = True) -> str:
+        checkbox = "x" if complete else " "
+        return f"""\
+- [{checkbox}] Task 1 — Deliver one outcome.
+  - Size: Standard
+  - Proof scope: Focused
+  - Owns: none (proof contract only).
+  - Depends on: none
+  - Proof: The declared proof passes.
+"""
+
+    def receipt(self, *, scope: str = "Focused") -> str:
+        return (
+            f"- Proof receipt: `Task 1` — scope `{scope}` — "
+            "command `python3 -m unittest tests.test_example` — exit `0`."
+        )
+
+    def contents(self, *, stored: str | None, inline: str = POINTER) -> dict[str, str]:
+        contents = {"tasks.md": proof_scope_document(self.task(), progress=inline)}
+        if stored is not None:
+            contents["progress.md"] = stored
+        return contents
+
+    def errors(self, contents: dict[str, str]) -> list[str]:
+        return validate_spec.validate_proof_scope_gate(Path("specs/example"), contents)
+
+    def test_accepts_a_receipt_stored_in_progress_md(self) -> None:
+        stored = f"# Example Progress Log\n\n### 2026-08-04\n\n{self.receipt()}\n"
+        self.assertEqual([], self.errors(self.contents(stored=stored)))
+
+    def test_rejects_a_completed_task_whose_stored_log_has_no_receipt(self) -> None:
+        stored = "# Example Progress Log\n\n### 2026-08-04\n\n- Completed: Work done.\n"
+        errors = self.errors(self.contents(stored=stored))
+        self.assertTrue(any("requires a successful Focused" in error for error in errors))
+
+    def test_rejects_a_stale_inline_receipt_once_the_log_is_stored(self) -> None:
+        stored = "# Example Progress Log\n\n### 2026-08-04\n\n- Completed: Work done.\n"
+        errors = self.errors(
+            self.contents(stored=stored, inline=f"{POINTER}\n\n{self.receipt()}")
+        )
+        self.assertTrue(any("requires a successful Focused" in error for error in errors))
+
+    def test_rejects_a_stored_receipt_with_the_wrong_scope(self) -> None:
+        stored = (
+            "# Example Progress Log\n\n### 2026-08-04\n\n"
+            f"{self.receipt(scope='Broad')}\n"
+        )
+        errors = self.errors(self.contents(stored=stored))
+        self.assertTrue(any("requires a successful Focused" in error for error in errors))
+
+    def test_legacy_inline_receipts_still_validate_during_migration(self) -> None:
+        contents = {
+            "tasks.md": proof_scope_document(self.task(), progress=self.receipt())
+        }
+        self.assertEqual([], self.errors(contents))
+
+    def test_capability_readiness_resolves_from_the_stored_log(self) -> None:
+        capability = "capability:shared-contract"
+        tasks = capability_tasks(
+            status="Not Started",
+            requires="- None.",
+            provides=provides(capability),
+            tasks=provider_task(capability, complete=True),
+            progress=POINTER,
+        )
+        ready = {
+            Path("specs/provider"): {
+                "tasks.md": tasks,
+                "progress.md": (
+                    "# Provider Progress Log\n\n### 2026-08-04\n\n"
+                    f"- Task 1 completed; {capability} is ready.\n"
+                ),
+            }
+        }
+        self.assertEqual([], validate_spec.validate_capability_graph(Path("specs"), ready))
+
+        missing = {
+            Path("specs/provider"): {
+                "tasks.md": tasks,
+                "progress.md": "# Provider Progress Log\n\n### 2026-08-04\n\n- Done.\n",
+            }
+        }
+        self.assertTrue(
+            any(
+                "must record readiness" in error
+                for error in validate_spec.validate_capability_graph(
+                    Path("specs"), missing
+                )
+            )
+        )
+
+
+class RequiredFileTests(unittest.TestCase):
+    def test_progress_log_is_a_required_specification_file(self) -> None:
+        self.assertIn("progress.md", validate_spec.REQUIRED_FILES)
+
+
 if __name__ == "__main__":
     unittest.main()

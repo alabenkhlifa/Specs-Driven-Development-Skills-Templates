@@ -7,6 +7,7 @@ Before implementation, read the relevant files under `specs/<feature>/`:
 - `requirements.md` defines expected behavior and product boundaries.
 - `design.md` defines technical decisions and tradeoffs.
 - `tasks.md` defines the active implementation slice and verification state.
+- `progress.md` preserves newest-first implementation, proof, incident, and review evidence without bloating the current task plan.
 
 Do not replace an explicit project decision with an assumption.
 
@@ -31,6 +32,7 @@ Execute the canonical `SKILL.md` instead of imitating it. When one request combi
 - A capability is available only after its provider task, proof, and readiness write-back are complete.
 - Keep the earliest affected consumer task blocked while its capability is unavailable. Keep the slice blocked only when its next executable task is blocked.
 - Update provider and consumer specifications together when a capability edge changes.
+- Use `python3 .agents/scripts/capability_index.py --capability <name>` for fast provider and consumer navigation; the global validator remains the authority.
 - Run `python3 .agents/scripts/validate_spec.py --all specs` after dependency changes.
 
 ## Slice Size Gate
@@ -57,15 +59,16 @@ Execute the canonical `SKILL.md` instead of imitating it. When one request combi
 - Give each applicable task exactly one `Proof scope:` declaration. Use `Focused` by default; use `Broad — <reason>` only when the task owns an inseparable repository-wide, browser-matrix, security, production, or release gate.
 - Run focused task commands through `python3 .agents/scripts/run_proof.py task --task <n> -- <command>`. Add `--broad` only for a validator-approved broad task.
 - Before implementation, extend `validate_task_command` and `test_run_proof.py` for the project's test, build, browser, and release commands. Record that the included guardrails already cover the stack only when that is true.
-- Record every successful task receipt in the progress log. A completed applicable task requires a matching receipt.
+- Record every successful task receipt in `progress.md`. A completed applicable task requires a matching receipt.
 - Run complete verification-gate commands through `python3 .agents/scripts/run_proof.py slice -- <command>` and record their receipts at slice verification.
 
 ## Readiness And Write-Back
 
 - Report product-requirement, technical-design, implementation, verification, and release readiness separately.
 - Keep deployment-dependent evidence in a release gate when it is not needed for implementation or local verification.
-- Treat an unavailable service, runtime, daemon, credential, or network as an environment blocker for the affected proof. Continue independent work and record the blocker in `tasks.md`.
-- Persist accepted decisions, blockers, progress, proof results, and review checkpoints through the matching SDD workflow.
+- Treat an unavailable service, runtime, daemon, credential, or network as an environment blocker for the affected proof. Continue independent work, record the incident in `progress.md`, and record any resulting current blocker in `tasks.md`.
+- Keep current requirements, design, task, blocker, and status state in the first three files. Keep chronological implementation movement, proof results, incidents, capability readiness, and review checkpoints in `progress.md`.
+- Keep `## Progress Log` in `tasks.md` as exactly `See [progress.md](progress.md).`
 - Do not mark a slice `Verified` while a required established check is failing or unavailable without an explicit accepted exception.
 
 ## Task Planning And Traceability
@@ -77,15 +80,16 @@ Execute the canonical `SKILL.md` instead of imitating it. When one request combi
 - Give every task one `Owned surfaces` field and exactly one `Owns:` line.
 - Assign every active criterion to exactly one task and every active data entity to at least one task.
 - Classify criteria and entities outside the active slice as deferred or release coverage; do not also assign them to an active task.
-- Run `python3 .agents/scripts/validate_spec.py specs/<feature>` after a specification or task-boundary change.
+- Run `python3 .agents/scripts/validate_spec.py specs/<feature>` and `python3 .agents/scripts/split_progress_log.py --check` after a specification or task-boundary change.
 
 ## Agent Execution Mode
 
-- Delegate task development when the environment supports sub-agents, and assign explicit path and surface ownership in every brief. Sub-agents working on one task may share the slice worktree only when their paths are disjoint and the main thread reconciles them.
+- Delegate task development only when the environment or user authorizes it, and give each sub-agent a closed brief with the task, decided design, hard constraints, explicit path and surface ownership, exclusions, proof, and commit boundary. The main thread owns repository-wide preflight.
 - Run different tasks in parallel only when their dependencies, files, surfaces, proofs, and runtime state are disjoint. Give each task a short-lived branch and separate worktree from the slice branch, plus a distinct local-server port when needed.
 - Keep orchestration, review, real-exit proof reconciliation, specification write-back, and commit decisions in the main thread. Execute each commit in the worktree that owns its task.
 - Create the task-boundary commit immediately after proof and write-back pass, then merge the short-lived task branch into the slice branch. Accumulate task commits on one branch per active slice.
 - Never check out one branch in multiple worktrees, run different task labels concurrently in one worktree, or share mutable runtime state between parallel tasks.
+- Treat test-database partitioning, build-cache separation, worktree priming, and local-server startup as project adapters. Configure them for the project's stack instead of hard-coding one runtime into the reusable workflow.
 
 ## Project Checks
 
@@ -95,4 +99,7 @@ Execute the canonical `SKILL.md` instead of imitating it. When one request combi
 - Lint: `<lint command>`
 - Manual or browser verification: `<verification instructions>`
 - Proof runner: `python3 .agents/scripts/test_run_proof.py`
+- Specification validator: `python3 .agents/scripts/test_validate_spec.py`
+- Capability index: `python3 .agents/scripts/test_capability_index.py`
+- Progress journal split: `python3 .agents/scripts/test_split_progress_log.py` and `python3 .agents/scripts/split_progress_log.py --check`
 - Focused-proof command policy: `<project-specific broad commands rejected by run_proof.py, or why the included policy fully covers this stack>`

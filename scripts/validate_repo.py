@@ -21,8 +21,15 @@ REQUIRED_FILES = [
     "templates/feature-spec/requirements.md",
     "templates/feature-spec/design.md",
     "templates/feature-spec/tasks.md",
+    "templates/feature-spec/progress.md",
+    "skills/add-spec/assets/progress.md",
+    "examples/training-request/progress.md",
     "scripts/validate_spec.py",
     "scripts/test_validate_spec.py",
+    "scripts/capability_index.py",
+    "scripts/test_capability_index.py",
+    "scripts/split_progress_log.py",
+    "scripts/test_split_progress_log.py",
     "scripts/run_proof.py",
     "scripts/test_run_proof.py",
     "commands/add-spec.md",
@@ -36,7 +43,7 @@ REQUIRED_FILES = [
 ]
 
 SKILLS = ("add-spec", "update-spec", "implement-spec", "review-spec")
-TEMPLATES = ("requirements.md", "design.md", "tasks.md")
+TEMPLATES = ("requirements.md", "design.md", "tasks.md", "progress.md")
 
 
 def read(relative_path: str) -> str:
@@ -135,7 +142,10 @@ def main() -> int:
 
     run_check(errors, "scripts/test_validate_spec.py")
     run_check(errors, "scripts/test_run_proof.py")
+    run_check(errors, "scripts/test_capability_index.py")
+    run_check(errors, "scripts/test_split_progress_log.py")
     if (ROOT / "examples").is_dir():
+        run_check(errors, "scripts/split_progress_log.py", "--check", "examples")
         run_check(errors, "scripts/validate_spec.py", "--all", "examples")
 
     if errors:
